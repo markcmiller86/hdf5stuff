@@ -363,7 +363,7 @@ void CreateTreeNodeTypes(hid_t fid, hid_t *mtype, hid_t *ftype)
     *ftype = H5Tcreate(H5T_COMPOUND, sizeof(TreeNode_t));
     H5Tinsert(*ftype, "memberA", OFFSET(dummy, memberA), H5T_NATIVE_INT);
     H5Tinsert(*ftype, "memberB", OFFSET(dummy, memberB), H5T_NATIVE_INT);
-    H5Tinsert(*ftype, "coords", OFFSET(dummy, coords), mcoords);
+    H5Tinsert(*ftype, "coords", OFFSET(dummy, coords), fcoords);
     H5Tinsert(*ftype, "left", OFFSET(dummy, left), H5T_NATIVE_INT);
     H5Tinsert(*ftype, "right", OFFSET(dummy, right), H5T_NATIVE_INT);
     H5Tinsert(*ftype, "list", OFFSET(dummy, list), H5T_NATIVE_INT);
@@ -394,7 +394,7 @@ void CreateTreeListNodeTypes(hid_t fid, hid_t *mtype, hid_t *ftype)
     H5Tset_size(fname, sizeof(dummy.name));
     H5Tcommit(fid, "name", fname, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     *ftype = H5Tcreate(H5T_COMPOUND, sizeof(TreeListNode_t));
-    H5Tinsert(*ftype, "name", OFFSET(dummy, name), mname);
+    H5Tinsert(*ftype, "name", OFFSET(dummy, name), fname);
     H5Tinsert(*ftype, "val1", OFFSET(dummy, val1), H5T_NATIVE_INT);
     H5Tinsert(*ftype, "val2", OFFSET(dummy, val2), H5T_NATIVE_DOUBLE);
     H5Tinsert(*ftype, "val3", OFFSET(dummy, val3), H5T_NATIVE_FLOAT);
@@ -583,17 +583,14 @@ int main(int argc, char **argv)
     hdim = (hsize_t) nln;
     lnspid = H5Screate_simple(1, &hdim, 0);
     lndsid = H5Dcreate(fid, "ListNode_data", ln_f, lnspid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Sclose(spid);
 
     hdim = (hsize_t) ntn;
     tnspid = H5Screate_simple(1, &hdim, 0);
     tndsid = H5Dcreate(fid, "TreeNode_data", tn_f, tnspid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Sclose(spid);
 
     hdim = (hsize_t) ntln;
     tlnspid = H5Screate_simple(1, &hdim, 0);
     tlndsid = H5Dcreate(fid, "TreeListNode_data", tln_f, tlnspid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Sclose(spid);
 
     /* Do the actual traversal and writing. Note, pointer->int conversions happen
        automatically as hdf5 encounters the need due to src and dst type mismatches. */
