@@ -541,7 +541,7 @@ int main(int argc, char **argv)
 {
     TreeListNode_t *head;
 
-    hid_t fid, tgid, spid;
+    hid_t fid, tgid;
     hid_t ln_m, ln_f, tn_m, tn_f, tln_m, tln_f;
     hid_t lnsetid, tndsid, tlndsid;
     hid_t lnspaceid, tnspid, tlnspid;
