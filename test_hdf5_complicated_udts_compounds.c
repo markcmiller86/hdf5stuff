@@ -82,7 +82,7 @@ TreeListNode_t *CreateTreeListNodeInstance()
     strcpy(retval->name, name);
     retval->val1 = count;
     retval->val2 = count*count;
-    retval->val3 = 3*count;
+    retval->val3 = 3.14159265359*count;
     count++;
     return retval;
 }
@@ -206,6 +206,8 @@ void PrintTreeNode(int indent, TreeNode_t const *node)
         PrintTreeNode(indent+1, node->right);
 }
 
+
+//=========================================================================
 void PrintTreeListNode(TreeListNode_t const *node)
 {
     printf("TreeListNode_t @ %p\n", node);
@@ -220,6 +222,8 @@ void PrintTreeListNode(TreeListNode_t const *node)
         PrintTreeNode(0, node->tree);
 }
 
+
+//=========================================================================
 void PrintUDTData(TreeListNode_t const *root)
 {
     while (root)
@@ -311,8 +315,10 @@ herr_t UDTPointerToInt(hid_t srctyp, hid_t dsttyp, H5T_cdata_t *cdata,
 
 #define OFFSET(P,F)     ((char*)&((P).F)-(char*)&(P))
 
-/* Create memory and file types for the 3 UDTs above */
 
+//=========================================================================
+/* Create memory and file types for the 3 UDTs above */
+//=========================================================================
 void CreateListNodeTypes(hid_t fid, hid_t *mtype, hid_t *ftype)
 {
     ListNode_t dummy;
@@ -436,6 +442,8 @@ void TraverseTreeNodeInPreparationForWriting(TreeNode_t const *node,
             nln, ln_map, ntn, tn_map, ntln, tln_map);
 }
 
+
+//=========================================================================
 void TraverseUDTInPreparationForWriting(TreeListNode_t const *node,
     int *nln, ListNode_t const *ln_map[],
     int *ntn, TreeNode_t const *tn_map[],
@@ -452,9 +460,12 @@ void TraverseUDTInPreparationForWriting(TreeListNode_t const *node,
     }
 }
 
+
+//=========================================================================
 /* Traversal routines to do the actual writing */
+//=========================================================================
 void TraverseListNodeAndWrite(hid_t fid, ListNode_t const *node,
-    int *nln, hid_t ln_m, hid_t lnspid, hid_t lnid)
+    int *nln, hid_t ln_m, hid_t lnspaceid, hid_t lnsetid)
 {
     hsize_t hdimm = 1;
     hid_t spidm = H5Screate_simple(1, &hdimm, 0);
@@ -463,16 +474,18 @@ void TraverseListNodeAndWrite(hid_t fid, ListNode_t const *node,
     {
         hsize_t coord = *nln;
         (*nln)++;
-        H5Sselect_none(lnspid);
-        H5Sselect_elements(lnspid, H5S_SELECT_SET, 1, &coord);
-        H5Dwrite(lnid, ln_m, spidm, lnspid, H5P_DEFAULT, node);
+        H5Sselect_none(lnspaceid);
+        H5Sselect_elements(lnspaceid, H5S_SELECT_SET, 1, &coord);
+        H5Dwrite(lnsetid, ln_m, spidm, lnspaceid, H5P_DEFAULT, node);
         node = node->next;
     }
     H5Sclose(spidm);
 }
 
+
+//=========================================================================
 void TraverseTreeNodeAndWrite(hid_t fid, TreeNode_t const *node,
-    int *nln, hid_t ln_m, hid_t lnspid, hid_t lnid,
+    int *nln, hid_t ln_m, hid_t lnspaceid, hid_t lnsetid,
     int *ntn, hid_t tn_m, hid_t tnspid, hid_t tnid)
 {
     hsize_t hdimm = 1;
@@ -485,16 +498,18 @@ void TraverseTreeNodeAndWrite(hid_t fid, TreeNode_t const *node,
     H5Sselect_elements(tnspid, H5S_SELECT_SET, 1, &coord);
     H5Dwrite(tnid, tn_m, spidm, tnspid, H5P_DEFAULT, node);
     if (node->list)
-        TraverseListNodeAndWrite(fid, node->list, nln, ln_m, lnspid, lnid);
+        TraverseListNodeAndWrite(fid, node->list, nln, ln_m, lnspaceid, lnsetid);
     if (node->left)
-        TraverseTreeNodeAndWrite(fid, node->left, nln, ln_m, lnspid, lnid, ntn, tn_m, tnspid, tnid);
+        TraverseTreeNodeAndWrite(fid, node->left, nln, ln_m, lnspaceid, lnsetid, ntn, tn_m, tnspid, tnid);
     if (node->right)
-        TraverseTreeNodeAndWrite(fid, node->right, nln, ln_m, lnspid, lnid, ntn, tn_m, tnspid, tnid);
+        TraverseTreeNodeAndWrite(fid, node->right, nln, ln_m, lnspaceid, lnsetid, ntn, tn_m, tnspid, tnid);
     H5Sclose(spidm);
 }
 
+
+//=========================================================================
 void TraverseUDTAndWrite(hid_t fid, TreeListNode_t const *node,
-    int *nln, hid_t ln_m, hid_t lnspid, hid_t lnid,
+    int *nln, hid_t ln_m, hid_t lnspaceid, hid_t lnsetid,
     int *ntn, hid_t tn_m, hid_t tnspid, hid_t tnid,
     int *ntln, hid_t tln_m, hid_t tlnspid, hid_t tlnid)
 {
@@ -510,23 +525,26 @@ void TraverseUDTAndWrite(hid_t fid, TreeListNode_t const *node,
         H5Sselect_none(tlnspid);
         H5Sselect_elements(tlnspid, H5S_SELECT_SET, 1, &coord);
         H5Dwrite(tlnid, tln_m, spidm, tlnspid, H5P_DEFAULT, node);
-        if (node->tree)
+        if (node->tree) {
             TraverseTreeNodeAndWrite(fid, node->tree,
-                nln, ln_m, lnspid, lnid,
+                nln, ln_m, lnspaceid, lnsetid,
                 ntn, tn_m, tnspid, tnid);
+        }
         node = node->next;
     }
     H5Sclose(spidm);
 }
 
+
+//=========================================================================
 int main(int argc, char **argv)
 {
     TreeListNode_t *head;
 
     hid_t fid, tgid, spid;
     hid_t ln_m, ln_f, tn_m, tn_f, tln_m, tln_f;
-    hid_t lndsid, tndsid, tlndsid;
-    hid_t lnspid, tnspid, tlnspid;
+    hid_t lnsetid, tndsid, tlndsid;
+    hid_t lnspaceid, tnspid, tlnspid;
     hsize_t hdim;
     int i, nln, ntn, ntln;
 
@@ -537,7 +555,7 @@ int main(int argc, char **argv)
     PrintUDTData(head);
 
     /* Create the HDF5 file */
-    fid = H5Fcreate("test_hdf5_udt.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    fid = H5Fcreate("test_hdf5_udt_compounds.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     tgid = H5Gcreate(fid, "Types", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     /* Create memory POINTER types. These are never committed and are only
@@ -581,8 +599,8 @@ int main(int argc, char **argv)
 
     /* Create Datasets; one for each UDT */
     hdim = (hsize_t) nln;
-    lnspid = H5Screate_simple(1, &hdim, 0);
-    lndsid = H5Dcreate(fid, "ListNode_data", ln_f, lnspid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    lnspaceid = H5Screate_simple(1, &hdim, 0);
+    lnsetid = H5Dcreate(fid, "ListNode_data", ln_f, lnspaceid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     hdim = (hsize_t) ntn;
     tnspid = H5Screate_simple(1, &hdim, 0);
@@ -595,7 +613,7 @@ int main(int argc, char **argv)
     /* Do the actual traversal and writing. Note, pointer->int conversions happen
        automatically as hdf5 encounters the need due to src and dst type mismatches. */
     TraverseUDTAndWrite(fid, head,
-        &nln, ln_m, lnspid, lndsid,
+        &nln, ln_m, lnspaceid, lnsetid,
         &ntn, tn_m, tnspid, tndsid,
         &ntln, tln_m, tlnspid, tlndsid);
 
@@ -603,10 +621,10 @@ int main(int argc, char **argv)
     PrintUDTData(head);
 #endif
 
-    H5Sclose(lnspid);
+    H5Sclose(lnspaceid);
     H5Sclose(tnspid);
     H5Sclose(tlnspid);
-    H5Dclose(lndsid);
+    H5Dclose(lnsetid);
     H5Dclose(tndsid);
     H5Dclose(tlndsid);
     H5Gclose(tgid);
