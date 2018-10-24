@@ -133,7 +133,7 @@ TreeListNode_t *CreateUDTData()
     root->right = CreateTreeNodeInstance();
     root->right->right = CreateTreeNodeInstance();
     root->right->right->list = CreateListNodeInstance();
-    root->right->right->list = CreateListNodeInstance();
+    root->right->right->list->next = CreateListNodeInstance();
 
     /* Tree 2, more stuff */
     root = CreateTreeNodeInstance();
@@ -555,7 +555,7 @@ int main(int argc, char **argv)
     PrintUDTData(head);
 
     /* Create the HDF5 file */
-    fid = H5Fcreate("test_hdf5_udt_compounds.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    fid = H5Fcreate("test_hdf5_udt_compounds_c.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     tgid = H5Gcreate(fid, "Types", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     /* Create memory POINTER types. These are never committed and are only
