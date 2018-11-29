@@ -1,6 +1,9 @@
 # hdf5stuff
 Temporary place to collect various HDF5 example/test clients
 
+* [Graph of User Defined Types](./graph_of_udts/readme.md)
+   * Evolution from naive to optimized use of HDF5 for writing an amorphous graph/tree of user defined types
+
 * [testhdf5_serialize.c](./snipits/testhdf5_serialize.c)
   * Creates a random JSON object using JSON-CWX library and writes it, naively, to HDF5
   * Has a few command line arguments size of object and amounts of meta data vs raw data within it.
