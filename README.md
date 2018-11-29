@@ -1,7 +1,7 @@
 # hdf5stuff
 Temporary place to collect various HDF5 example/test clients
 
-* [Graph of User Defined Types](./graph_of_udts/readme.md)
+* [Graph of User Defined Types](./graph_of_udts/README.md)
    * Evolution from naive to optimized use of HDF5 for writing an amorphous graph/tree of user defined types
 
 * [testhdf5_serialize.c](./snipits/testhdf5_serialize.c)
