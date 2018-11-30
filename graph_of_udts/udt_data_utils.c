@@ -1,9 +1,18 @@
-#include "udt_data_utils.h"
-
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "hdf5.h"
+
+#include "udt_data_utils.h"
+
+/* Stuff to help with pointer->int conversions */
+hid_t ln_p, tn_p, tln_p;
+TreeListNode_t **tln_map;
+TreeNode_t **tn_map;
+ListNode_t **ln_map;
 
 /* Data creation routines just to create some useable
    data that I can easily understand with h5ls */
@@ -54,6 +63,10 @@ TreeListNode_t *CreateUDTData()
     TreeListNode_t *treeListHead, *treeList0, *treeList1, *treeList2;
     TreeNode_t *root, *treeNodeTmp;
     ListNode_t *head, *listNodeTmp;
+
+    tln_map = (TreeListNode_t **) calloc(64, sizeof(TreeListNode_t*));
+    tn_map = (TreeNode_t **) calloc(64, sizeof(TreeNode_t*));
+    ln_map = (ListNode_t **) calloc(64, sizeof(ListNode_t*));
 
     /* top level is 3 entries of "trees" */
     treeList0 = CreateTreeListNodeInstance();
@@ -126,6 +139,94 @@ TreeListNode_t *CreateUDTData()
     return treeListHead;
 }
 
+static ListNode_t *CreateListNodesRandom(int *nentities)
+{
+    int i;
+    int nentstmp = *nentities;
+    int nln = nentstmp > 5 ? random() % (nentstmp/2) : nentstmp;
+    ListNode_t *ln;
+
+    if (nln <= 0) return 0;
+
+printf("random list of size %d %d\n", *nentities, nln);
+    ln = CreateListNodeInstance();
+    for (i = 1; i < nln; i++)
+    {
+        ln->next = CreateListNodeInstance();
+        ln = ln->next;
+    }
+
+    *nentities -= nln;
+    
+    return ln;
+}
+
+static TreeNode_t *CreateTreeNodesRandom(int *nentities)
+{
+    int i;
+    int nentstmp = *nentities;
+    int ntns_max = nentstmp > 2 ? nentstmp / 2 : 1;
+    int ntns = random() % ntns_max + 1;
+    int nleftover = nentstmp - ntns;
+    TreeNode_t **tn_last, *tnroot;
+
+    tn_last = (TreeNode_t **) calloc(ntns, sizeof(TreeNode_t*));
+    for (i = 0; i < ntns; i++)
+    {
+        TreeNode_t *tn_next = CreateTreeNodeInstance();
+        tn_next->list = CreateListNodesRandom(&nleftover);
+        tn_last[i] = tn_next;
+        if (i == 0)
+        {
+            tnroot = tn_next;
+            continue;
+        }
+        /*if (random() % 2)*/
+        if (i % 2)
+            tn_last[i/2  ]->left = tn_next;
+        else
+            tn_last[i/2-1]->right = tn_next;
+    }
+    free(tn_last);
+
+    *nentities -= ntns;
+
+    return tnroot;
+}
+
+TreeListNode_t *CreateUDTDataRandom(int nentities)
+{
+    int i;
+    int ntlns_max = nentities > 100 ? nentities / 100 : 1;
+    int ntlns = random() % ntlns_max + 1;
+    int nleftover = nentities - ntlns;
+    TreeListNode_t *tln_last, *tlnroot;
+
+    assert(nentities < MAX_ENTS);
+
+    /* huge over-alloc but who cares */
+    tln_map = (TreeListNode_t **) calloc(nentities, sizeof(TreeListNode_t*));
+    tn_map = (TreeNode_t **) calloc(nentities, sizeof(TreeNode_t*));
+    ln_map = (ListNode_t **) calloc(nentities, sizeof(ListNode_t*));
+
+    for (i = 0; i < ntlns; i++)
+    {
+        TreeListNode_t *tln_next = CreateTreeListNodeInstance();
+        tln_next->tree = CreateTreeNodesRandom(&nleftover);
+        if (i == 0)
+        {
+            tlnroot = tln_next;
+            tln_last = tln_next;
+            continue;
+        }
+        tln_last->next = tln_next;
+        tln_next->prev = tln_last;
+        tln_last = tln_next;
+    }
+
+    return tlnroot;
+}
+
 /* Print routines for debugging */
 void PrintListNode(int indent, ListNode_t const *node)
 {
@@ -191,4 +292,11 @@ void PrintUDTData(TreeListNode_t const *root)
         PrintTreeListNode(root);
         root = root->next;
     }
+}
+
+void FreeUDTData()
+{
+    free(tln_map);
+    free(tn_map);
+    free(ln_map);
 }

@@ -1,237 +1,11 @@
-#include <hdf5.h>
 #include <assert.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* Test writing a complicated pointer linked data structure with
-   multiple User Defined Types (UDTs) to HDF5 datasets */
+#include "hdf5.h"
 
-/* Define three simple User Defined Types (UDTs).
-   Top level is doubly linked list of TreeListNodes.
-   Each tree List node may point to a TreeNode, which
-   is a binary tree. Some binary trees are sparse and
-   others are dense. Each binary tree node can point
-   ListNode which is a linked list. */
-typedef struct _ListNode_t {
-     int                 offsets[3];
-     float               a;
-     float               b;
-     struct _ListNode_t *next;
-} ListNode_t;
-
-typedef struct _TreeNode_t {
-    int                 memberA;
-    int                 memberB;
-    double              coords[3];
-    struct _TreeNode_t *left;
-    struct _TreeNode_t *right;
-    struct _ListNode_t *list;
-} TreeNode_t;
-
-typedef struct _TreeListNode_t {
-    char                    name[32];
-    int                     val1;
-    double                  val2;
-    float                   val3;
-    struct _TreeListNode_t *next;
-    struct _TreeListNode_t *prev;
-    struct _TreeNode_t *tree;
-} TreeListNode_t;
-
-/* Stuff to help with pointer->int conversions */
-hid_t ln_p, tn_p, tln_p;
-TreeListNode_t const *tln_map[64];
-TreeNode_t const *tn_map[64];
-ListNode_t const *ln_map[64];
-
-/* Data creation routines just to create some useable
-   data that I can easily understand with h5ls */
-ListNode_t *CreateListNodeInstance()
-{
-    static int count = 0;
-    ListNode_t *retval = (ListNode_t *) calloc(1, sizeof(ListNode_t));
-    retval->offsets[0] = count;
-    retval->offsets[1] = 2 * count;
-    retval->offsets[2] = 3 * count;
-    retval->a = sqrt(count);
-    retval->b = 2 * retval->a;
-    count++;
-    return retval;
-}
-
-TreeNode_t *CreateTreeNodeInstance()
-{
-    static int count = 0;
-    TreeNode_t *retval = (TreeNode_t*) calloc(1, sizeof(TreeNode_t));
-    retval->memberA = count;
-    retval->memberB =  2 * retval->memberA;
-    retval->coords[0] = (double) count;
-    retval->coords[1] = (double) 2 * count;
-    retval->coords[2] = (double) 3 * count;
-    count++;
-    return retval;
-}
-
-TreeListNode_t *CreateTreeListNodeInstance()
-{
-    static int count = 0;
-    char name[32];
-    TreeListNode_t *retval = (TreeListNode_t*) calloc(1, sizeof(TreeListNode_t));
-    snprintf(name, sizeof(name), "TreeListNode_%03d", count);
-    strcpy(retval->name, name);
-    retval->val1 = count;
-    retval->val2 = count*count;
-    retval->val3 = 3.14159265359*count;
-    count++;
-    return retval;
-}
-
-/* Top level data creation routine which creates an arbitrary
-   arrangement of UDTs */
-TreeListNode_t *CreateUDTData()
-{
-    TreeListNode_t *treeListHead, *treeList0, *treeList1, *treeList2;
-    TreeNode_t *root, *treeNodeTmp;
-    ListNode_t *head, *listNodeTmp;
-
-    /* top level is 3 entries of "trees" */
-    treeList0 = CreateTreeListNodeInstance();
-    treeList1 = CreateTreeListNodeInstance();
-    treeList2 = CreateTreeListNodeInstance();
-    treeListHead = treeList0;
-
-    treeList0->next = treeList1;
-    treeList1->prev = treeList0;
-    treeList1->next = treeList2;
-    treeList2->prev = treeList1;
-
-    /* Tree 0; just two children and no lists in either */
-    root = CreateTreeNodeInstance();
-    treeList0->tree = root;
-    root->left = CreateTreeNodeInstance();
-    root->right = CreateTreeNodeInstance();
-
-    /* Tree 1; unbalanced, a few levels, some with lists */
-    root = CreateTreeNodeInstance();
-    treeList1->tree = root;
-    root->left = CreateTreeNodeInstance();
-    root->left->right = CreateTreeNodeInstance();
-    root->left->right->list = CreateListNodeInstance();
-    root->left->right->list->next = CreateListNodeInstance();
-    root->left->right->list->next->next = CreateListNodeInstance();
-    root->left->right->list->next->next->next = CreateListNodeInstance();
-    root->left->left = CreateTreeNodeInstance();
-    root->left->left->left = CreateTreeNodeInstance();
-    root->left->left->left->left = CreateTreeNodeInstance();
-    root->left->left->left->left->list = CreateListNodeInstance();
-    root->left->left->left->left->list->next = CreateListNodeInstance();
-    root->left->left->left->left->list->next->next = CreateListNodeInstance();
-    root->left->left->left->left->list->next->next->next = CreateListNodeInstance();
-    root->left->left->left->left->list->next->next->next->next = CreateListNodeInstance();
-    root->left->left->left->right = CreateTreeNodeInstance();
-    root->right = CreateTreeNodeInstance();
-    root->right->right = CreateTreeNodeInstance();
-    root->right->right->list = CreateListNodeInstance();
-    root->right->right->list->next = CreateListNodeInstance();
-
-    /* Tree 2, more stuff */
-    root = CreateTreeNodeInstance();
-    treeList2->tree = root;
-    root->left = CreateTreeNodeInstance();
-    root->left->list = CreateListNodeInstance();
-    root->right = CreateTreeNodeInstance();
-    root->right->list = CreateListNodeInstance();
-    root->right->list->next = CreateListNodeInstance();
-    root->right->list->next->next = CreateListNodeInstance();
-    root->left->left = CreateTreeNodeInstance();
-    root->left->left->list = CreateListNodeInstance();
-    root->left->right = CreateTreeNodeInstance();
-    root->left->right->list = CreateListNodeInstance();
-    root->right->left = CreateTreeNodeInstance();
-    root->right->left->list = CreateListNodeInstance();
-    root->right->right = CreateTreeNodeInstance();
-    root->right->right->list = CreateListNodeInstance();
-
-    /* Several more empty tree list nodes at the end */
-    treeList2->next = CreateTreeListNodeInstance();
-    treeList2->next->prev = treeList2;
-
-    treeList2->next->next = CreateTreeListNodeInstance();
-    treeList2->next->next->prev = treeList2->next;
-
-    treeList2->next->next->next = CreateTreeListNodeInstance();
-    treeList2->next->next->next->prev = treeList2->next->next;
-
-    return treeListHead;
-}
-
-/* Print routines for debugging */
-void PrintListNode(int indent, ListNode_t const *node)
-{
-    while (node)
-    {
-        printf("%*sListNode_t @ %p\n", 2+indent*2, "", node);
-        printf("%*s  offsets = %d,%d,%d\n", 2+indent*3, "",
-            node->offsets[0], node->offsets[1], node->offsets[2]);
-        printf("%*s  a = %g\n", 2+indent*3, "", node->a);
-        printf("%*s  b = %g\n", 2+indent*3, "", node->b);
-        printf("%*s  next = %p\n", 2+indent*3, "", node->next);
-        node = node->next;
-    }
-}
-
-void PrintTreeNode(int indent, TreeNode_t const *node)
-{
-    int                 memberA;
-    int                 memberB;
-    double              coords[3];
-    struct _TreeNode_t *left;
-    struct _TreeNode_t *right;
-    struct _ListNode_t *list;
-    
-    printf("%*sTreeNode_t @ %p\n", 2+indent*2, "", node);
-    printf("%*s  memberA = %d\n", 2+indent*2, "", node->memberA);
-    printf("%*s  memberB = %d\n", 2+indent*2, "", node->memberB);
-    printf("%*s  coords = %g,%g,%g\n", 2+indent*2, "",
-        node->coords[0], node->coords[1], node->coords[2]);
-    printf("%*s  list = %p\n", 2+indent*2, "", node->list);
-    if (node->list)
-        PrintListNode(indent, node->list);
-    printf("%*s  left = %p\n", 2+indent*2, "", node->left);
-    if (node->left)
-        PrintTreeNode(indent+1, node->left);
-    printf("%*s  right = %p\n", 2+indent*2, "", node->right);
-    if (node->right)
-        PrintTreeNode(indent+1, node->right);
-}
-
-
-//=========================================================================
-void PrintTreeListNode(TreeListNode_t const *node)
-{
-    printf("TreeListNode_t @ %p\n", node);
-    printf("  name = \"%s\"\n", node->name);
-    printf("  val1 = %d\n", node->val1);
-    printf("  val2 = %g\n", node->val2);
-    printf("  val3 = %g\n", node->val3);
-    printf("  next = %p\n", node->next);
-    printf("  prev = %p\n", node->prev);
-    printf("  tree = %p\n", node->tree);
-    if (node->tree)
-        PrintTreeNode(0, node->tree);
-}
-
-
-//=========================================================================
-void PrintUDTData(TreeListNode_t const *root)
-{
-    while (root)
-    {
-        PrintTreeListNode(root);
-        root = root->next;
-    }
-}
+#include "udt_data_utils.h"
 
 /* Data conversion routine callback used by HDF5 during H5Dwrite calls
    to convert memory pointer types to file integer types. Note that
@@ -255,7 +29,7 @@ herr_t UDTPointerToInt(hid_t srctyp, hid_t dsttyp, H5T_cdata_t *cdata,
             *foo = -1;
             return 0;
         }
-        for (i = 0; i < 64; i++)
+        for (i = 0; i < MAX_ENTS; i++)
         {
             if (tn_map[i] == p)
             {
@@ -276,7 +50,7 @@ herr_t UDTPointerToInt(hid_t srctyp, hid_t dsttyp, H5T_cdata_t *cdata,
             *foo = -1;
             return 0;
         }
-        for (i = 0; i < 64; i++)
+        for (i = 0; i < MAX_ENTS; i++)
         {
             if (ln_map[i] == p)
             {
@@ -297,7 +71,7 @@ herr_t UDTPointerToInt(hid_t srctyp, hid_t dsttyp, H5T_cdata_t *cdata,
             *foo = -1;
             return 0;
         }
-        for (i = 0; i < 64; i++)
+        for (i = 0; i < MAX_ENTS; i++)
         {
             if (tln_map[i] == p)
             {
@@ -549,13 +323,14 @@ int main(int argc, char **argv)
     int i, nln, ntn, ntln;
 
     /* create some data to write */
-    head = CreateUDTData();
+    /*head = CreateUDTData();*/
+    head = CreateUDTDataRandom(2560);
 
     /* traverse and print the data for debug purposes */
     PrintUDTData(head);
 
     /* Create the HDF5 file */
-    fid = H5Fcreate("test_hdf5_udt_compounds_c.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    fid = H5Fcreate("udt_graph2.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     tgid = H5Gcreate(fid, "Types", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     /* Create memory POINTER types. These are never committed and are only
@@ -581,7 +356,9 @@ int main(int argc, char **argv)
     CreateTreeListNodeTypes(tgid, &tln_m, &tln_f);
 
     TraverseUDTInPreparationForWriting(head,
-        &nln, ln_map, &ntn, tn_map, &ntln, tln_map);
+        &nln, (ListNode_t const**) ln_map, &ntn,
+              (TreeNode_t const **) tn_map, &ntln,
+              (TreeListNode_t const **) tln_map);
 
 #ifdef DEBUG
     printf("nln = %d, ntn = %d, ntln = %d\n", nln, ntn, ntln);
@@ -629,6 +406,8 @@ int main(int argc, char **argv)
     H5Dclose(tlndsid);
     H5Gclose(tgid);
     H5Fclose(fid);
+
+    FreeUDTData();
 
     return 0;
 }

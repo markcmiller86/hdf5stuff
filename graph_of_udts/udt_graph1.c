@@ -175,13 +175,14 @@ int main(int argc, char **argv)
     hid_t ln_f, tn_f, tln_f;
 
     /* create some data to write */
-    head = CreateUDTData();
+    /*head = CreateUDTData();*/
+    head = CreateUDTDataRandom(2560);
 
     /* traverse and print the data for debug purposes */
     PrintUDTData(head);
 
     /* Create the HDF5 file */
-    fid = H5Fcreate("graph_of_udts_1.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    fid = H5Fcreate("udt_graph1.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     tgid = H5Gcreate(fid, "Types", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     /* Create memory and file types for our 3 user defined types */
@@ -200,6 +201,8 @@ int main(int argc, char **argv)
 
     H5Gclose(tgid);
     H5Fclose(fid);
+
+    FreeUDTData();
 
     return 0;
 }
