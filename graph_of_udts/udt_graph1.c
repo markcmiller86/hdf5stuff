@@ -174,15 +174,27 @@ int main(int argc, char **argv)
     hid_t fid, tgid;
     hid_t ln_f, tn_f, tln_f;
 
+    ADD_ARG(unsigned, seed,  0xDeadBeef, "0x%X", "random number generator");
+    ADD_ARG(int,      nrandom,  0, "%d", "number of entities in randomized data gen");
+    ADD_ARG(char*,    h5file, "udt_graph1.h5", "\"%s\"", "name of hdf5 file");
+    ADD_ARG(int,      help,  0, "%d", "this help message");
+
     /* create some data to write */
-    /*head = CreateUDTData();*/
-    head = CreateUDTDataRandom(2560);
+    if (nrandom > 0)
+    {
+        srandom(seed);
+        head = CreateUDTDataRandom(nrandom);
+    }
+    else
+    {
+        head = CreateUDTData();
+    }
 
     /* traverse and print the data for debug purposes */
     PrintUDTData(head);
 
     /* Create the HDF5 file */
-    fid = H5Fcreate("udt_graph1.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    fid = H5Fcreate(h5file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     tgid = H5Gcreate(fid, "Types", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     /* Create memory and file types for our 3 user defined types */

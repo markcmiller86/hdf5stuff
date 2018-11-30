@@ -5,6 +5,65 @@
 
 #define MAX_ENTS (1<<20)
 
+/* Useful Macro for defining CL args and CL help */
+#define ADD_ARG(TYPE,NAME,DEFVAL,SPEC,HELPSTR)                  \
+    TYPE NAME = DEFVAL;                                         \
+    {                                                           \
+        char tmpstr[128];                                       \
+        int len = strlen(#NAME)+1;                              \
+        int _help = 0;                                          \
+        int i;                                                  \
+        if (!strncmp(#NAME, "help", 4))                         \
+        {                                                       \
+            for (i = 1; i < argc; i++)                          \
+            {                                                   \
+                if (strcasestr(argv[i],"help"))                 \
+                {                                               \
+                    _help = 1;                                  \
+                    if (i < argc - 1)                           \
+                    {                                           \
+                        char *tmp = argv[argc-1];               \
+                        argv[argc-1] = argv[i];                 \
+                        argv[i] = tmp;                          \
+                    }                                           \
+                    argc--;                                     \
+                    break;                                      \
+                }                                               \
+            }                                                   \
+        }                                                       \
+        for (i = 1; i < argc; i++)                              \
+        {                                                       \
+            if (!strncmp(argv[i], #NAME"=", len))               \
+            {                                                   \
+                if (strchr(#TYPE,'*'))                          \
+                    NAME=(TYPE) (argv[i]+len);                  \
+                else                                            \
+                    sscanf(argv[i]+len,SPEC,&NAME);             \
+                if (i < argc - 1)                               \
+                {                                               \
+                    char *tmp = argv[argc-1];                   \
+                    argv[argc-1] = argv[i];                     \
+                    argv[i] = tmp;                              \
+                }                                               \
+                argc--;                                         \
+                break;                                          \
+            }                                                   \
+        }                                                       \
+        len = snprintf(tmpstr, sizeof(tmpstr), "%s="SPEC, #NAME, NAME);\
+        printf("    %s%*s\n",tmpstr,80-len,HELPSTR);            \
+        if (!strncmp(#NAME, "help", 4))                         \
+        {                                                       \
+            if (_help) return 1;                                \
+            if (argc > 1)                                       \
+            {                                                   \
+                printf("unrecognized arguments...\n");          \
+                for (i = 1; i < argc; i++)                      \
+                    printf("    \"%s\"\n", argv[i]);            \
+                return 1;                                       \
+            }                                                   \
+        }                                                       \
+    }
+
 #ifdef __cplusplus
 extern "C" {
 #endif
