@@ -6,10 +6,18 @@ demonstrate this with both C and Fortran examples.
 
 ## C Example Progression
 
-In the first example, `udt_graph1.c`, each single UDT instance in the graph is written to HDF5 
+We demonstrate 3 progressively more advanced examples of using HDF5 to write this data.
 
-the goal is to make the software engineering as
-simple as possible at the expense
+### Naive C Example
+
+In the first example, `udt_graph1.c`, each *node* in the graph of UDTs is realized as an
+HDF5 *group*. The data associated with a specific UDT modulo any pointers is written as
+a singleton *dataset* (e.g. a dataset with a single *point*).
+
+Very simple from a software engineering standpoint. However, HDF5 file overheads are bad.
+Overheads for groups and datasets.
+
+### Better way to use HDF5 for this case.
 
 ## Fortran Example Progression
 
