@@ -23,6 +23,10 @@ MODULE UDTsCompounds
     INTEGER,PARAMETER :: fullI = selected_int_kind(18)
     INTEGER,PARAMETER :: pntrI = selected_int_kind(18)
 
+    INTEGER,PARAMETER :: TYPE_LISTNODE=303+1
+    INTEGER,PARAMETER :: TYPE_TREENODE=303+2
+    INTEGER,PARAMETER :: TYPE_TREELISTNODE=303+3
+
     ! Define three simple User Defined Types (UDTs).
     ! Top level is doubly linked list of TreeListNodes.
     ! Each tree List node may point to a TreeNode, which
@@ -643,23 +647,55 @@ END SUBROUTINE
 
 
 !==========================================================================
-RECURSIVE SUBROUTINE TraverseTreeNodeInPreparationForWriting(node,nln,ln_map,ntn,tn_map)
+RECURSIVE SUBROUTINE TraverseTreeNodeInPreparationForWriting(node,nln,ln_map,ntn,tn_map, &
+                                                             UDTPointerCount,UDTPointerTable)
 
     TYPE(TreeNode_t),POINTER :: node
     INTEGER,INTENT(INOUT) :: nln
     INTEGER,INTENT(INOUT) :: ln_map(:)
     INTEGER,INTENT(INOUT) :: ntn
     INTEGER,INTENT(INOUT) :: tn_map(:)
+    INTEGER(singI),INTENT(INOUT) :: UDTPointerCount
+    INTEGER(singI),POINTER :: UDTPointerTable(:,:)
 
 
     ntn=ntn+1
 !     tn_map[*ntn] = node; (*ntn)++;
-    IF (ASSOCIATED(node%list)) &
+    UDTPointerCount=UDTPointerCount+1
+    IF (UDTPointerCount>SIZE(UDTPointerTable,DIM=1)) CALL ExpandUDTPointerTable(UDTPointerTable)
+    UDTPointerTable(UDTPointerCount,1)=TYPE_TREENODE
+    UDTPointerTable(UDTPointerCount,2)=ntn
+    UDTPointerTable(UDTPointerCount,3)=TYPE_LISTNODE
+    IF (ASSOCIATED(node%list)) THEN
+        UDTPointerTable(UDTPointerCount,3)=nln+1
         CALL TraverseListNodeInPreparationForWriting(node%list,nln,ln_map)
-    IF (ASSOCIATED(node%left)) &
-        CALL TraverseTreeNodeInPreparationForWriting(node%left,nln,ln_map,ntn,tn_map)
-    IF (ASSOCIATED(node%right)) &
-        CALL TraverseTreeNodeInPreparationForWriting(node%right,nln,ln_map,ntn,tn_map)
+    ELSE
+        UDTPointerTable(UDTPointerCount,4)=0
+    END IF
+    UDTPointerCount=UDTPointerCount+1
+    IF (UDTPointerCount>SIZE(UDTPointerTable,DIM=1)) CALL ExpandUDTPointerTable(UDTPointerTable)
+    UDTPointerTable(UDTPointerCount,1)=TYPE_TREENODE
+    UDTPointerTable(UDTPointerCount,2)=ntn
+    UDTPointerTable(UDTPointerCount,3)=TYPE_TREENODE
+    IF (ASSOCIATED(node%left)) THEN
+        UDTPointerTable(UDTPointerCount,4)=ntn+1
+        CALL TraverseTreeNodeInPreparationForWriting(node%left,nln,ln_map,ntn,tn_map, &
+                                                     UDTPointerCount,UDTPointerTable)
+    ELSE
+        UDTPointerTable(UDTPointerCount,4)=0
+    END IF
+    UDTPointerCount=UDTPointerCount+1
+    IF (UDTPointerCount>SIZE(UDTPointerTable,DIM=1)) CALL ExpandUDTPointerTable(UDTPointerTable)
+    UDTPointerTable(UDTPointerCount,1)=TYPE_TREENODE
+    UDTPointerTable(UDTPointerCount,2)=ntn
+    UDTPointerTable(UDTPointerCount,3)=TYPE_TREENODE
+    IF (ASSOCIATED(node%right)) THEN
+        UDTPointerTable(UDTPointerCount,4)=ntn+1
+        CALL TraverseTreeNodeInPreparationForWriting(node%right,nln,ln_map,ntn,tn_map, &
+                                                     UDTPointerCount,UDTPointerTable)
+    ELSE
+        UDTPointerTable(UDTPointerCount,4)=0
+    END IF
 
 END SUBROUTINE TraverseTreeNodeInPreparationForWriting
 
@@ -667,7 +703,9 @@ END SUBROUTINE TraverseTreeNodeInPreparationForWriting
 !==========================================================================
 SUBROUTINE TraverseUDTInPreparationForWriting(node,nln,ln_map, &
                                                    ntn,tn_map, &
-                                                   ntln,tln_map)
+                                                   ntln,tln_map, &
+                                              UDTPointerCount, &
+                                              UDTPointerTable)
 
     TYPE(TreeListNode_t),POINTER :: node
 !     int *nln, ListNode_t const *ln_map[],
@@ -679,6 +717,8 @@ SUBROUTINE TraverseUDTInPreparationForWriting(node,nln,ln_map, &
 !     int *ntln, TreeListNode_t const *tln_map[])
     INTEGER,INTENT(INOUT) :: ntln
     INTEGER,INTENT(INOUT) :: tln_map(:)
+    INTEGER(singI),INTENT(INOUT) :: UDTPointerCount
+    INTEGER(singI),POINTER :: UDTPointerTable(:,:)
 
     TYPE(TreeListNode_t),POINTER :: tln
 
@@ -691,8 +731,18 @@ SUBROUTINE TraverseUDTInPreparationForWriting(node,nln,ln_map, &
 
         ntln=ntln+1
 !         tln_map[*ntln] = node;
-        IF (ASSOCIATED(tln%tree)) &
-            CALL TraverseTreeNodeInPreparationForWriting(tln%tree,nln,ln_map,ntn,tn_map)
+        UDTPointerCount=UDTPointerCount+1
+        IF (UDTPointerCount>SIZE(UDTPointerTable,DIM=1)) CALL ExpandUDTPointerTable(UDTPointerTable)
+        UDTPointerTable(UDTPointerCount,1)=TYPE_TREELISTNODE
+        UDTPointerTable(UDTPointerCount,2)=ntln
+        UDTPointerTable(UDTPointerCount,3)=TYPE_TREENODE
+        IF (ASSOCIATED(tln%tree)) THEN
+            UDTPointerTable(UDTPointerCount,4)=ntn+1
+            CALL TraverseTreeNodeInPreparationForWriting(tln%tree,nln,ln_map,ntn,tn_map, &
+                                                         UDTPointerCount,UDTPointerTable)
+        ELSE
+            UDTPointerTable(UDTPointerCount,4)=0
+        END IF
 
         tln=>tln%next
     END DO
@@ -868,6 +918,27 @@ END SUBROUTINE TraverseUDTAndWrite
 
 
 !==========================================================================
+SUBROUTINE ExpandUDTPointerTable(table)
+
+    INTEGER(singI),POINTER :: table(:,:)
+
+    INTEGER(singI) :: NumRows
+    INTEGER(singI),ALLOCATABLE :: temptable(:,:)
+
+
+    NumRows=SIZE(table,DIM=1)
+    ALLOCATE(temptable(NumRows,4))
+    temptable=table
+    DEALLOCATE(table)
+    ALLOCATE(table(NumRows*2,4))
+    table=0
+    table(1:NumRows,:)=temptable
+    DEALLOCATE(temptable)
+
+END SUBROUTINE ExpandUDTPointerTable
+
+
+!==========================================================================
 SUBROUTINE stopper(hdferr,LineNo)
 
     INTEGER(singI),INTENT(IN) :: hdferr
@@ -908,8 +979,25 @@ PROGRAM main
     INTEGER :: ln_map(64)
     INTEGER :: tn_map(64)
     INTEGER :: tln_map(64)
+    !
+    ! indexing is as follows:
+    ! i1=number of "graph edges", or pointers of the form "UDT1->UDT2"
+    ! i2=single graph edge, encoded as (UDT type 1,index of UDT type 1,UDT type 2,index of UDT type 2)
+    !   * if a pointer is pointing to null, (index of UDT type 2=0)
+    !   * singly-linked lists are skipped, as the associated graph edges should
+    !     trivial to reconstruct
+    !
+    ! note the the initial number of graph edges is set to two; will expand
+    ! dynamically as necessary
+    !
+    INTEGER(singI) :: UDTPointerCount,iPointer
+    INTEGER(singI),POINTER :: UDTPointerTable(:,:)
+    CHARACTEr(LEN=64) :: type1str,type2str
 
     head=>NULL()
+    UDTPointerCount=0
+    ALLOCATE(UDTPointerTable(2,4))
+    UDTPointerTable=0
 
 
     ! create some data to write
@@ -944,7 +1032,30 @@ PROGRAM main
     tn_map=0
     ntln=0
     tln_map=0
-    CALL TraverseUDTInPreparationForWriting(head,nln,ln_map,ntn,tn_map,ntln,tln_map)
+    CALL TraverseUDTInPreparationForWriting(head,nln,ln_map,ntn,tn_map,ntln,tln_map, &
+                                            UDTPointerCount,UDTPointerTable)
+! print out the pointer table for a quick check
+DO iPointer=1,UDTPointerCount
+    IF (UDTPointerTable(iPointer,1)==TYPE_LISTNODE) THEN
+        WRITE(UNIT=type1str,FMT='(a)') "listnode"
+    ELSE IF (UDTPointerTable(iPointer,1)==TYPE_TREENODE) THEN
+        WRITE(UNIT=type1str,FMT='(a)') "treenode"
+    ELSE IF (UDTPointerTable(iPointer,1)==TYPE_TREELISTNODE) THEN
+        WRITE(UNIT=type1str,FMT='(a)') "treelistnode"
+    END IF
+    IF (UDTPointerTable(iPointer,3)==TYPE_LISTNODE) THEN
+        WRITE(UNIT=type2str,FMT='(a)') "listnode"
+    ELSE IF (UDTPointerTable(iPointer,3)==TYPE_TREENODE) THEN
+        WRITE(UNIT=type2str,FMT='(a)') "treenode"
+    ELSE IF (UDTPointerTable(iPointer,3)==TYPE_TREELISTNODE) THEN
+        WRITE(UNIT=type2str,FMT='(a)') "treelistnode"
+    END IF
+    WRITE(UNIT=*,FMT='(a,a,a,i0,a,a,a,i0)') &
+        "type """,TRIM(type1str), &
+        """, index ",UDTPointerTable(iPointer,2), &
+        " -> type """,TRIM(type2str), &
+        """, index ",UDTPointerTable(iPointer,4)
+END DO
 
 ! #ifdef DEBUG
 !     printf("nln = %d, ntn = %d, ntln = %d\n", nln, ntn, ntln);
