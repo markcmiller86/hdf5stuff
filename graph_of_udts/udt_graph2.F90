@@ -35,6 +35,11 @@ MODULE UDTsCompounds
         REAL :: b
         TYPE(ListNode_t),POINTER :: next
     END TYPE ListNode_t
+    TYPE ListNode_t1
+        INTEGER :: offsets(3)
+        REAL :: a
+        REAL :: b
+    END TYPE ListNode_t1
 
     TYPE TreeNode_t
         INTEGER :: memberA
@@ -64,6 +69,9 @@ MODULE UDTsCompounds
         INTEGER(singI) :: val1
         REAL(fullR) :: val2
         REAL(singR) :: val3
+        ! TYPE(TreeListNode_t),POINTER :: next1=>NULL()
+        ! TYPE(TreeListNode_t),POINTER :: next2=>NULL()
+        ! TYPE(TreeListNode_t),POINTER :: next3=>NULL()
     END TYPE TreeListNode_t1
 
 
@@ -417,26 +425,35 @@ END SUBROUTINE PrintUDTData
 !==========================================================================
 ! Create memory and file types for the 3 UDTs above */
 !==========================================================================
-! #define OFFSET(P,F)     ((char*)&((P).F)-(char*)&(P))
-SUBROUTINE CreateListNodeTypes(fid,mtype,ftype)
+SUBROUTINE CreateListNodeTypes(fid,ln_p,mtype,ftype)
 
-    INTEGER(hid_t),INTENT(IN) :: fid
+    INTEGER(hid_t),INTENT(IN) :: fid,ln_p
     INTEGER(hid_t),INTENT(OUT) :: mtype,ftype
 
     INTEGER :: hdferr
     TYPE(ListNode_t),TARGET :: dummy
+    TYPE(ListNode_t1),TARGET :: dummy1
     INTEGER(hid_t) :: moff,foff
     INTEGER(hsize_t) :: dims(1)=3
 
 
-!     /* memory type */
+WRITE(UNIT=*,FMT='(a,i0)') "ListNode_t, without pointers=",(STORAGE_SIZE(dummy1)/8)
+WRITE(UNIT=*,FMT='(a,i0)') "ListNode_t, with pointers=",(STORAGE_SIZE(dummy)/8)
+    ! memory type
 !     moff = H5Tarray_create(H5T_NATIVE_INT, 1, &dims);
+    CALL h5tarray_create_f(H5T_NATIVE_INTEGER,1,dims,moff,hdferr); CALL stopper(hdferr,__LINE__)
 !     *mtype = H5Tcreate(H5T_COMPOUND, sizeof(ListNode_t));
+    CALL h5tcreate_f(H5T_COMPOUND_F,INT(STORAGE_SIZE(dummy)/8,hsize_t),mtype,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "offsets", OFFSET(dummy, offsets), moff);
+    CALL h5tinsert_f(mtype,"offsets",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%offsets)),moff,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "a", OFFSET(dummy, a), H5T_NATIVE_FLOAT);
+    CALL h5tinsert_f(mtype,"a",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%a)),h5kind_to_type(singR,H5_REAL_KIND),hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "b", OFFSET(dummy, b), H5T_NATIVE_FLOAT);
+    CALL h5tinsert_f(mtype,"b",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%b)),h5kind_to_type(singI,H5_REAL_KIND),hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "next", OFFSET(dummy, next), ln_p);
+    CALL h5tinsert_f(mtype,"next",INT(24,SIZE_T),ln_p,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tclose(moff);
+    CALL h5tclose_f(moff,hdferr); CALL stopper(hdferr,__LINE__)
 
     ! file type
 !     foff = H5Tarray_create(H5T_NATIVE_INT, 1, &dims);
@@ -683,26 +700,56 @@ SUBROUTINE TraverseUDTInPreparationForWriting(node,nln,ln_map, &
 END SUBROUTINE TraverseUDTInPreparationForWriting
 
 
-! //=========================================================================
-! /* Traversal routines to do the actual writing */
-! //=========================================================================
-! void TraverseListNodeAndWrite(hid_t fid, ListNode_t const *node,
-!     int *nln, hid_t ln_m, hid_t lnspaceid, hid_t lnsetid)
-! {
+!==========================================================================
+! Traversal routines to do the actual writing
+!==========================================================================
+SUBROUTINE TraverseListNodeAndWrite(fid,node,nln,ln_m,lnspaceid,lnsetid)
+
+    INTEGER(hid_t),INTENT(IN) :: fid
+    TYPE(ListNode_t),POINTER :: node
+    INTEGER,INTENT(INOUT) :: nln
+    INTEGER(hid_t),INTENT(IN) :: ln_m,lnspaceid,lnsetid
+
+    INTEGER(hsize_t) :: hdimm(1)
+    INTEGER(hid_t) :: spidm
+    TYPE(ListNode_t),POINTER :: ln
+    INTEGER(hsize_t) :: coord(1,1)
+    TYPE(ListNode_t),TARGET :: ln_scalar
+    INTEGER :: hdferr
+
+    ln=>NULL()
+
+
 !     hsize_t hdimm = 1;
+    hdimm=1
 !     hid_t spidm = H5Screate_simple(1, &hdimm, 0);
+    CALL h5screate_simple_f(1,hdimm,spidm,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Sselect_all(spidm);
-!     while (node)
-!     {
-!         hsize_t coord = *nln;
+    CALL h5sselect_all_f(spidm,hdferr); CALL stopper(hdferr,__LINE__)
+
+    ln=>node
+    DO
+        IF (.NOT.ASSOCIATED(ln)) EXIT
+
 !         (*nln)++;
+        nln=nln+1
 !         H5Sselect_none(lnspaceid);
+        CALL h5sselect_none_f(lnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
+!         hsize_t coord = *nln;
+        coord=INT(nln,hsize_t)
 !         H5Sselect_elements(lnspaceid, H5S_SELECT_SET, 1, &coord);
+        CALL h5sselect_elements_f(lnspaceid,H5S_SELECT_SET_F,1,INT(1,hsize_t),coord,hdferr); CALL stopper(hdferr,__LINE__)
 !         H5Dwrite(lnsetid, ln_m, spidm, lnspaceid, H5P_DEFAULT, node);
+        ln_scalar=ln
+        CALL h5dwrite_f(lnsetid,ln_m,C_LOC(ln_scalar),hdferr,spidm,lnspaceid,H5P_DEFAULT_F); CALL stopper(hdferr,__LINE__)
+
 !         node = node->next;
-!     }
+        ln=>ln%next
+    END DO
 !     H5Sclose(spidm);
-! }
+    CALL h5sclose_f(spidm,hdferr)
+
+END SUBROUTINE TraverseListNodeAndWrite
 
 
 !==========================================================================
@@ -742,8 +789,9 @@ RECURSIVE SUBROUTINE TraverseTreeNodeAndWrite(fid, node, &
 !     H5Dwrite(tnsetid, tn_m, spidm, tnspaceid, H5P_DEFAULT, node);
     tn_scalar=node
     CALL h5dwrite_f(tnsetid,tn_m,C_LOC(tn_scalar),hdferr,spidm,tnspaceid,H5P_DEFAULT_F); CALL stopper(hdferr,__LINE__)
-!     if (node->list)
-!         TraverseListNodeAndWrite(fid, node->list, nln, ln_m, lnspaceid, lnsetid);
+
+    IF (ASSOCIATED(node%list)) &
+        CALL TraverseListNodeAndWrite(fid,node%list,nln,ln_m,lnspaceid,lnsetid)
     IF (ASSOCIATED(node%left)) &
         CALL TraverseTreeNodeAndWrite(fid,node%left,nln,ln_m,lnspaceid,lnsetid,ntn,tn_m,tnspaceid,tnsetid)
     IF (ASSOCIATED(node%right)) &
@@ -886,7 +934,7 @@ PROGRAM main
     CALL h5tset_tag_f(tln_p,"TreeListNode_t pointer",hdferr)
 
     ! Create memory and file types for our 3 user defined types
-    CALL CreateListNodeTypes(tgid,ln_m,ln_f)
+    CALL CreateListNodeTypes(tgid,ln_p,ln_m,ln_f)
     CALL CreateTreeNodeTypes(tgid,tn_p,ln_p,tn_m,tn_f)
     CALL CreateTreeListNodeTypes(tgid,tln_p,tln_m,tln_f)
 
