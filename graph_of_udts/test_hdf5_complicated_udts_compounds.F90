@@ -504,60 +504,62 @@ WRITE(UNIT=*,FMT='(a,i0)') "TreeListNode_t, without pointers=",(STORAGE_SIZE(dum
 WRITE(UNIT=*,FMT='(a,i0)') "TreeListNode_t, with pointers=",(STORAGE_SIZE(dummy)/8)
 !     /* memory type */
 !     mname = H5Tcopy(H5T_C_S1);
-    CALL h5tcopy_f(H5T_STRING,mname,hdferr)
+    ! CALL h5tcopy_f(H5T_STRING,mname,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5tcopy_f(H5T_FORTRAN_S1,mname,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tset_size(mname, sizeof(dummy.name));
-    CALL h5tset_size_f(mname,INT(STORAGE_SIZE(dummy%name),hsize_t),hdferr)
+    CALL h5tset_size_f(mname,INT(STORAGE_SIZE(dummy%name)/8,hsize_t),hdferr); CALL stopper(hdferr,__LINE__)
 !     *mtype = H5Tcreate(H5T_COMPOUND, sizeof(TreeListNode_t));
-    CALL h5tcreate_f(H5T_COMPOUND_F,INT(STORAGE_SIZE(dummy)/8,hsize_t),mtype,hdferr)
+    CALL h5tcreate_f(H5T_COMPOUND_F,INT(STORAGE_SIZE(dummy)/8,hsize_t),mtype,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "name", OFFSET(dummy, name), mname);
 WRITE(UNIT=*,FMT='(a,i0)') "  offset of ""name""=",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%name))
-    CALL h5tinsert_f(mtype,"name",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%name)),mname,hdferr)
+    CALL h5tinsert_f(mtype,"name",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%name)),mname,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "val1", OFFSET(dummy, val1), H5T_NATIVE_INT);
 WRITE(UNIT=*,FMT='(a,i0)') "  offset of ""val1""=",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val1))
-    CALL h5tinsert_f(mtype,"val1",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val1)),h5kind_to_type(singI,H5_INTEGER_KIND),hdferr)
+    CALL h5tinsert_f(mtype,"val1",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val1)),h5kind_to_type(singI,H5_INTEGER_KIND),hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "val2", OFFSET(dummy, val2), H5T_NATIVE_DOUBLE);
 WRITE(UNIT=*,FMT='(a,i0)') "  offset of ""val2""=",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val2))
-    CALL h5tinsert_f(mtype,"val2",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val2)),h5kind_to_type(fullR,H5_REAL_KIND),hdferr)
+    CALL h5tinsert_f(mtype,"val2",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val2)),h5kind_to_type(fullR,H5_REAL_KIND),hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "val3", OFFSET(dummy, val3), H5T_NATIVE_FLOAT);
 WRITE(UNIT=*,FMT='(a,i0)') "  offset of ""val3""=",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val3))
-    CALL h5tinsert_f(mtype,"val3",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val3)),h5kind_to_type(singR,H5_REAL_KIND),hdferr)
+    CALL h5tinsert_f(mtype,"val3",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val3)),h5kind_to_type(singR,H5_REAL_KIND),hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "next", OFFSET(dummy, next), tln_p);
 WRITE(UNIT=*,FMT='(a,i0)') "  offset of ""next""=",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%next))
     ! CALL h5tinsert_f(mtype,"next",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%next)),H5T_OPAQUE_F,hdferr)
     ! CALL h5tinsert_f(mtype,"next",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%next)),H5T_REFERENCE_F,hdferr)
     ! CALL h5tinsert_f(mtype,"next",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%next)),tln_p,hdferr)
-    CALL h5tinsert_f(mtype,"next",INT(56,SIZE_T),tln_p,hdferr)
+    CALL h5tinsert_f(mtype,"next",INT(56,SIZE_T),tln_p,hdferr); CALL stopper(hdferr,__LINE__)
     ! CALL h5tinsert_f(mtype,"next",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%next)),h5kind_to_type(pntrI,H5_INTEGER_KIND),hdferr)
 WRITE(UNIT=*,FMT='(a,i0)') "  offset of ""prev""=",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%prev))
-    CALL h5tinsert_f(mtype,"prev",INT(64,SIZE_T),tln_p,hdferr)
+    CALL h5tinsert_f(mtype,"prev",INT(64,SIZE_T),tln_p,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "prev", OFFSET(dummy, prev), tln_p);
 WRITE(UNIT=*,FMT='(a,i0)') "  offset of ""tree""=",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%tree))
 !     H5Tinsert(*mtype, "tree", OFFSET(dummy, tree), tn_p);
-    CALL h5tinsert_f(mtype,"tree",INT(72,SIZE_T),tln_p,hdferr)
-    CALL h5tclose_f(mname,hdferr)
+    CALL h5tinsert_f(mtype,"tree",INT(72,SIZE_T),tln_p,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5tclose_f(mname,hdferr); CALL stopper(hdferr,__LINE__)
 
 !     fname = H5Tcopy(H5T_C_S1);
-    CALL h5tcopy_f(H5T_STRING,fname,hdferr)
-    CALL h5tset_size_f(fname,INT(STORAGE_SIZE(dummy%name),hsize_t),hdferr)
-    CALL h5tcommit_f(fid,"name",fname,hdferr)
+    ! CALL h5tcopy_f(H5T_STRING,fname,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5tcopy_f(H5T_FORTRAN_S1,fname,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5tset_size_f(fname,INT(STORAGE_SIZE(dummy%name)/8,hsize_t),hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5tcommit_f(fid,"name",fname,hdferr); CALL stopper(hdferr,__LINE__)
 !     *ftype = H5Tcreate(H5T_COMPOUND, sizeof(TreeListNode_t));
-    CALL h5tcreate_f(H5T_COMPOUND_F,INT(STORAGE_SIZE(dummy)/8,hsize_t),ftype,hdferr)
+    CALL h5tcreate_f(H5T_COMPOUND_F,INT(STORAGE_SIZE(dummy)/8,hsize_t),ftype,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*ftype, "name", OFFSET(dummy, name), fname);
-    CALL h5tinsert_f(ftype,"name",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%name)),fname,hdferr)
+    CALL h5tinsert_f(ftype,"name",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%name)),fname,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*ftype, "val1", OFFSET(dummy, val1), H5T_NATIVE_INT);
     ! CALL h5tinsert_f(ftype,"val1",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val1)),H5T_NATIVE_INTEGER,hdferr)
-    CALL h5tinsert_f(ftype,"val1",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val1)),h5kind_to_type(singI,H5_INTEGER_KIND),hdferr)
+    CALL h5tinsert_f(ftype,"val1",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val1)),h5kind_to_type(singI,H5_INTEGER_KIND),hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*ftype, "val2", OFFSET(dummy, val2), H5T_NATIVE_DOUBLE);
     ! CALL h5tinsert_f(ftype,"val2",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val2)),H5T_NATIVE_DOUBLE,hdferr)
-    CALL h5tinsert_f(ftype,"val2",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val2)),h5kind_to_type(fullR,H5_REAL_KIND),hdferr)
+    CALL h5tinsert_f(ftype,"val2",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val2)),h5kind_to_type(fullR,H5_REAL_KIND),hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*ftype, "val3", OFFSET(dummy, val3), H5T_NATIVE_FLOAT);
     ! CALL h5tinsert_f(ftype,"val3",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val3)),H5T_NATIVE_REAL,hdferr)
-    CALL h5tinsert_f(ftype,"val3",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val3)),h5kind_to_type(singR,H5_REAL_KIND),hdferr)
+    CALL h5tinsert_f(ftype,"val3",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%val3)),h5kind_to_type(singR,H5_REAL_KIND),hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*ftype, "next", OFFSET(dummy, next), H5T_NATIVE_INT);
 !     H5Tinsert(*ftype, "prev", OFFSET(dummy, prev), H5T_NATIVE_INT);
 !     H5Tinsert(*ftype, "tree", OFFSET(dummy, tree), H5T_NATIVE_INT);
-    CALL h5tcommit_f(fid,"TreeListNode_t",ftype,hdferr)
-    CALL h5tclose_f(fname,hdferr)
+    CALL h5tcommit_f(fid,"TreeListNode_t",ftype,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5tclose_f(fname,hdferr); CALL stopper(hdferr,__LINE__)
 
 END SUBROUTINE CreateTreeListNodeTypes
 
@@ -712,7 +714,6 @@ SUBROUTINE TraverseUDTAndWrite(fid,node, &
     INTEGER(hsize_t) :: hdimm(1)
     INTEGER(hid_t) :: spidm
     TYPE(TreeListNode_t),POINTER :: tln
-    ! TYPE(TreeListNode_t),POINTER :: tln_null_ptr
     TYPE(TreeListNode_t),TARGET :: tln_scalar
     TYPE(TreeListNode_t),TARGET,DIMENSION(1:6) :: tln_array
     INTEGER(hsize_t) :: coord(1,1)
@@ -720,59 +721,53 @@ SUBROUTINE TraverseUDTAndWrite(fid,node, &
     INTEGER :: hdferr
 
     tln=>NULL()
-    ! tln_null_ptr=>NULL()
-    ! ALLOCATE(tln_null_ptr)
 
 
 !     hsize_t hdimm = 1;
     hdimm=1
+    ! hdimm=6
 !     hid_t spidm = H5Screate_simple(1, &hdimm, 0);
-    CALL h5screate_simple_f(1,hdimm,spidm,hdferr)
+    CALL h5screate_simple_f(1,hdimm,spidm,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Sselect_all(spidm);
-    CALL h5sselect_all_f(spidm,hdferr)
+    CALL h5sselect_all_f(spidm,hdferr); CALL stopper(hdferr,__LINE__)
 
 !     *nln = *ntn = *ntln = 0;
     tln=>node
     DO
         IF (.NOT.ASSOCIATED(tln)) EXIT
 
-        ! tln_array=tln
-WRITE(UNIT=*,FMT='(a,a,a)') "tln%name=""",TRIM(tln%name),""""
-WRITE(UNIT=*,FMT='(a,i0)') "tln%val1=",tln%val1
-WRITE(UNIT=*,FMT='(a,es22.15)') "tln%val2=",tln%val2
-WRITE(UNIT=*,FMT='(a,es12.5)') "tln%val3=",tln%val3
-WRITE(UNIT=*,FMT='(a,L)') "ASSOCIATED(tln%next)=",ASSOCIATED(tln%next)
-WRITE(UNIT=*,FMT='(a,es12.5)') "tln%next%val3=",tln%next%val3
-WRITE(UNIT=*,FMT='(a,a,a)') "tln_array(1)%name=""",TRIM(tln_array(1)%name),""""
-WRITE(UNIT=*,FMT='(a,i0)') "tln_array(1)%val1=",tln_array(1)%val1
-WRITE(UNIT=*,FMT='(a,es22.15)') "tln_array(1)%val2=",tln_array(1)%val2
-WRITE(UNIT=*,FMT='(a,es12.5)') "tln_array(1)%val3=",tln_array(1)%val3
-WRITE(UNIT=*,FMT='(a,L)') "ASSOCIATED(tln_array(1)%next)=",ASSOCIATED(tln_array(1)%next)
-IF (ASSOCIATED(tln_array(1)%next)) THEN
-WRITE(UNIT=*,FMT='(a,es12.5)') "tln_array(1)%next%val3=",tln_array(1)%next%val3
-END IF
-        ! tln_scalar=tln
+        tln_array=tln
+! WRITE(UNIT=*,FMT='(a,a,a)') "tln%name=""",TRIM(tln%name),""""
+! WRITE(UNIT=*,FMT='(a,i0)') "tln%val1=",tln%val1
+! WRITE(UNIT=*,FMT='(a,es22.15)') "tln%val2=",tln%val2
+! WRITE(UNIT=*,FMT='(a,es12.5)') "tln%val3=",tln%val3
+! WRITE(UNIT=*,FMT='(a,L)') "ASSOCIATED(tln%next)=",ASSOCIATED(tln%next)
+! WRITE(UNIT=*,FMT='(a,es12.5)') "tln%next%val3=",tln%next%val3
+! WRITE(UNIT=*,FMT='(a,a,a)') "tln_array(1)%name=""",TRIM(tln_array(1)%name),""""
+! WRITE(UNIT=*,FMT='(a,i0)') "tln_array(1)%val1=",tln_array(1)%val1
+! WRITE(UNIT=*,FMT='(a,es22.15)') "tln_array(1)%val2=",tln_array(1)%val2
+! WRITE(UNIT=*,FMT='(a,es12.5)') "tln_array(1)%val3=",tln_array(1)%val3
+! WRITE(UNIT=*,FMT='(a,L)') "ASSOCIATED(tln_array(1)%next)=",ASSOCIATED(tln_array(1)%next)
+! IF (ASSOCIATED(tln_array(1)%next)) THEN
+! WRITE(UNIT=*,FMT='(a,es12.5)') "tln_array(1)%next%val3=",tln_array(1)%next%val3
+! END IF
+        tln_scalar=tln
 
         ntln=ntln+1
 WRITE(UNIT=*,FMT='(a,i0)') "ntln=",ntln 
 !         hsize_t coord = *ntln;
         coord=INT(ntln,hsize_t)
-        CALL h5sselect_none_f(tlnspaceid,hdferr)
-        CALL h5sselect_elements_f(tlnspaceid,H5S_SELECT_SET_F,1,INT(1,hsize_t),coord,hdferr)
+        CALL h5sselect_none_f(tlnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
+        CALL h5sselect_elements_f(tlnspaceid,H5S_SELECT_SET_F,1,INT(1,hsize_t),coord,hdferr); CALL stopper(hdferr,__LINE__)
+        ! CALL h5sselect_all_f(tlnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
         ! dims should be ignored
         dims=-1
         length=INT(1,hsize_t)
         ! H5Dwrite(tlnid, tln_m, spidm, tlnspid, H5P_DEFAULT, node);
         ! CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln),hdferr,spidm,tlnspaceid,H5P_DEFAULT_F)
         ! CALL h5dwrite_f(tlnsetid,tln_m,tln,hdferr,spidm,tlnspaceid,H5P_DEFAULT_F)
-        ! CALL blah(tlnsetid,tln_m,tln,spidm,tlnspaceid)
-        ! CALL blah(tlnsetid,tln_m,tln_array,spidm,tlnspaceid)
-        CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln_array(1)),hdferr,spidm,tlnspaceid,H5P_DEFAULT_F)
-        ! CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln_null_ptr),hdferr,spidm,tlnspaceid,H5P_DEFAULT_F)
-        ! CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln_array(1)),hdferr,spidm,H5S_ALL_F,H5P_DEFAULT_F)
-        ! CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln),dims,hdferr,spidm,tlnspaceid,H5P_DEFAULT_F)
-        ! CALL h5dwrite_f(tlnsetid,tln_m,tln,dims,hdferr,spidm,tlnspaceid,H5P_DEFAULT_F)
-        ! CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln_scalar),hdferr,spidm,tlnspaceid,H5P_DEFAULT_F)
+        ! CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln_array(1)),hdferr,spidm,tlnspaceid,H5P_DEFAULT_F); CALL stopper(hdferr,__LINE__)
+        CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln_scalar),hdferr,spidm,tlnspaceid,H5P_DEFAULT_F); CALL stopper(hdferr,__LINE__)
 !         if (node->tree) {
 !             TraverseTreeNodeAndWrite(fid, node->tree,
 !                 nln, ln_m, lnspaceid, lnsetid,
@@ -785,22 +780,21 @@ WRITE(UNIT=*,FMT='(a,i0)') "ntln=",ntln
 END SUBROUTINE TraverseUDTAndWrite
 
 
-SUBROUTINE blah(tlnsetid,tln_m,tln,spidm,tlnspaceid)
-    INTEGER(hid_t),INTENT(IN) :: tlnsetid
-    INTEGER(hid_t),INTENT(IN) :: tln_m
-    TYPE(TreeListNode_t),TARGET :: tln(:)
-    ! TYPE(TreeListNode_t),TARGET,DIMENSION(1:1) :: tln
-    INTEGER(hid_t),INTENT(IN) :: spidm
-    INTEGER(hid_t),INTENT(IN) :: tlnspaceid
+!==========================================================================
+SUBROUTINE stopper(hdferr,LineNo)
 
-    INTEGER :: hdferr
-    TYPE(C_PTR) :: f_ptr
+    INTEGER(singI),INTENT(IN) :: hdferr
+    INTEGER(singI),INTENT(IN) :: LineNo
 
-    ! CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln),hdferr,spidm,tlnspaceid,H5P_DEFAULT_F)
-    f_ptr=C_LOC(tln)
-    CALL h5dwrite_f(tlnsetid,tln_m,f_ptr,hdferr,spidm,tlnspaceid,H5P_DEFAULT_F)
-END SUBROUTINE blah
+    IF (hdferr/=0) THEN
+        WRITE(UNIT=*,FMT='(a,i0,a)') "Error at line ",LineNo,", quitting . . ."
+        STOP
+    END IF
 
+END SUBROUTINE stopper
+
+
+!==========================================================================
 END MODULE UDTsCompounds
 !==========================================================================
 
@@ -849,7 +843,7 @@ PROGRAM main
     ! CALL h5tset_tag_f(ln_p,"ListNode_t pointer",hdferr)
 !     tn_p = H5Tcreate(H5T_OPAQUE, sizeof(TreeNode_t*));
 !     H5Tset_tag(tn_p, "TreeNode_t*");
-    CALL h5tcreate_f(H5T_OPAQUE_F,INT(STORAGE_SIZE(dummy_ptr)/8,SIZE_T),tln_p,hdferr)
+    CALL h5tcreate_f(H5T_OPAQUE_F,INT(STORAGE_SIZE(dummy_ptr)/8,SIZE_T),tln_p,hdferr); CALL stopper(hdferr,__LINE__)
     CALL h5tset_tag_f(tln_p,"TreeListNode_t pointer",hdferr)
 
     ! Create memory and file types for our 3 user defined types
@@ -883,20 +877,20 @@ PROGRAM main
     ! Create Datasets; one for each UDT
     hdim=INT(nln,hsize_t)
 !     lnspaceid = H5Screate_simple(1, &hdim, 0);
-    CALL h5screate_simple_f(1,hdim,lnspaceid,hdferr)
+    CALL h5screate_simple_f(1,hdim,lnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
 !     lnsetid = H5Dcreate(fid, "ListNode_data", ln_f, lnspaceid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    CALL h5dcreate_f(fid,"ListNode_data",ln_f,lnspaceid,lnsetid,hdferr)
+    CALL h5dcreate_f(fid,"ListNode_data",ln_f,lnspaceid,lnsetid,hdferr); CALL stopper(hdferr,__LINE__)
 
     hdim=INT(ntn,hsize_t)
 !     tnspaceid = H5Screate_simple(1, &hdim, 0);
-    CALL h5screate_simple_f(1,hdim,tnspaceid,hdferr)
+    CALL h5screate_simple_f(1,hdim,tnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
 !     tndsid = H5Dcreate(fid, "TreeNode_data", tn_f, tnspaceid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     hdim=INT(ntln,hsize_t)
 !     tlnspaceid = H5Screate_simple(1, &hdim, 0);
-    CALL h5screate_simple_f(1,hdim,tlnspaceid,hdferr)
+    CALL h5screate_simple_f(1,hdim,tlnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
 !     tlnsetid = H5Dcreate(fid, "TreeListNode_data", tln_f, tlnspaceid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    CALL h5dcreate_f(fid,"TreeListNode_data",tln_f,tlnspaceid,tlnsetid,hdferr)
+    CALL h5dcreate_f(fid,"TreeListNode_data",tln_f,tlnspaceid,tlnsetid,hdferr); CALL stopper(hdferr,__LINE__)
 
     ! Do the actual traversal and writing. Note, pointer->int conversions happen
     ! automatically as hdf5 encounters the need due to src and dst type mismatches.
