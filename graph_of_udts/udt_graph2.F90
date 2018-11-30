@@ -992,7 +992,10 @@ PROGRAM main
     !
     INTEGER(singI) :: UDTPointerCount,iPointer
     INTEGER(singI),POINTER :: UDTPointerTable(:,:)
-    CHARACTEr(LEN=64) :: type1str,type2str
+    INTEGER(singI),ALLOCATABLE :: UDTPtrHDF(:,:)
+    CHARACTER(LEN=64) :: type1str,type2str
+    INTEGER(hid_t) :: pspaceid,psetid,psetPropID
+    INTEGER(hsize_t) :: phdim(2)
 
     head=>NULL()
     UDTPointerCount=0
@@ -1035,7 +1038,9 @@ PROGRAM main
     CALL TraverseUDTInPreparationForWriting(head,nln,ln_map,ntn,tn_map,ntln,tln_map, &
                                             UDTPointerCount,UDTPointerTable)
 ! print out the pointer table for a quick check
+ALLOCATE(UDTPtrHDF(UDTPointerCount,4))
 DO iPointer=1,UDTPointerCount
+    UDTPtrHDF(iPointer,:)=UDTPointerTable(iPointer,:)
     IF (UDTPointerTable(iPointer,1)==TYPE_LISTNODE) THEN
         WRITE(UNIT=type1str,FMT='(a)') "listnode"
     ELSE IF (UDTPointerTable(iPointer,1)==TYPE_TREENODE) THEN
@@ -1056,6 +1061,21 @@ DO iPointer=1,UDTPointerCount
         " -> type """,TRIM(type2str), &
         """, index ",UDTPointerTable(iPointer,4)
 END DO
+    ! currently has a lot of zeros
+    ! lets do some conditioning . . . 
+    phdim(1)=INT(UDTPointerCount,hsize_t)
+    phdim(2)=INT(4,hsize_t)
+    CALL h5screate_simple_f(2,phdim,pspaceid,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5pcreate_f(H5P_DATASET_CREATE_F,psetPropID,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5pset_chunk_f(psetPropID,2,phdim,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5pset_shuffle_f(psetPropID,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5pset_deflate_f(psetPropID,7,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5dcreate_f(fid,"UDTPointerTable",H5T_NATIVE_INTEGER,pspaceid,psetid,hdferr,dcpl_id=psetPropID); CALL stopper(hdferr,__LINE__)
+    CALL h5dwrite_f(psetid,H5T_NATIVE_INTEGER,C_LOC(UDTPtrHDF),hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5pclose_f(psetPropID,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5dclose_f(psetid,hdferr)
+    CALL h5sclose_f(pspaceid,hdferr)
+    DEALLOCATE(UDTPtrHDF)
 
 ! #ifdef DEBUG
 !     printf("nln = %d, ntn = %d, ntln = %d\n", nln, ntn, ntln);
