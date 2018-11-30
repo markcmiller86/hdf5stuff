@@ -464,11 +464,10 @@ END SUBROUTINE CreateTreeListNodeTypes
 ! Traversal prep to count occurrences of a given type and copy their
 ! pointers to a map
 !==========================================================================
-SUBROUTINE TraverseListNodeInPreparationForWriting(node,nln,ln_map)
+SUBROUTINE TraverseListNodeInPreparationForWriting(node,nln)
 
     TYPE(ListNode_t),POINTER :: node
     INTEGER,INTENT(INOUT) :: nln
-    INTEGER,INTENT(INOUT) :: ln_map(:)
 
     TYPE(ListNode_t),POINTER :: ln
 
@@ -488,14 +487,12 @@ END SUBROUTINE
 
 
 !==========================================================================
-RECURSIVE SUBROUTINE TraverseTreeNodeInPreparationForWriting(node,nln,ln_map,ntn,tn_map, &
+RECURSIVE SUBROUTINE TraverseTreeNodeInPreparationForWriting(node,nln,ntn, &
                                                              UDTPointerCount,UDTPointerTable)
 
     TYPE(TreeNode_t),POINTER :: node
     INTEGER,INTENT(INOUT) :: nln
-    INTEGER,INTENT(INOUT) :: ln_map(:)
     INTEGER,INTENT(INOUT) :: ntn
-    INTEGER,INTENT(INOUT) :: tn_map(:)
     INTEGER(singI),INTENT(INOUT) :: UDTPointerCount
     INTEGER(singI),POINTER :: UDTPointerTable(:,:)
 
@@ -509,7 +506,7 @@ RECURSIVE SUBROUTINE TraverseTreeNodeInPreparationForWriting(node,nln,ln_map,ntn
     UDTPointerTable(UDTPointerCount,3)=TYPE_LISTNODE
     IF (ASSOCIATED(node%list)) THEN
         UDTPointerTable(UDTPointerCount,3)=nln+1
-        CALL TraverseListNodeInPreparationForWriting(node%list,nln,ln_map)
+        CALL TraverseListNodeInPreparationForWriting(node%list,nln)
     ELSE
         UDTPointerTable(UDTPointerCount,4)=0
     END IF
@@ -521,7 +518,7 @@ RECURSIVE SUBROUTINE TraverseTreeNodeInPreparationForWriting(node,nln,ln_map,ntn
     UDTPointerTable(UDTPointerCount,3)=TYPE_TREENODE
     IF (ASSOCIATED(node%left)) THEN
         UDTPointerTable(UDTPointerCount,4)=ntn+1
-        CALL TraverseTreeNodeInPreparationForWriting(node%left,nln,ln_map,ntn,tn_map, &
+        CALL TraverseTreeNodeInPreparationForWriting(node%left,nln,ntn, &
                                                      UDTPointerCount,UDTPointerTable)
     ELSE
         UDTPointerTable(UDTPointerCount,4)=0
@@ -534,7 +531,7 @@ RECURSIVE SUBROUTINE TraverseTreeNodeInPreparationForWriting(node,nln,ln_map,ntn
     UDTPointerTable(UDTPointerCount,3)=TYPE_TREENODE
     IF (ASSOCIATED(node%right)) THEN
         UDTPointerTable(UDTPointerCount,4)=ntn+1
-        CALL TraverseTreeNodeInPreparationForWriting(node%right,nln,ln_map,ntn,tn_map, &
+        CALL TraverseTreeNodeInPreparationForWriting(node%right,nln,ntn, &
                                                      UDTPointerCount,UDTPointerTable)
     ELSE
         UDTPointerTable(UDTPointerCount,4)=0
@@ -544,19 +541,14 @@ END SUBROUTINE TraverseTreeNodeInPreparationForWriting
 
 
 !==========================================================================
-SUBROUTINE TraverseUDTInPreparationForWriting(node,nln,ln_map, &
-                                                   ntn,tn_map, &
-                                                   ntln,tln_map, &
+SUBROUTINE TraverseUDTInPreparationForWriting(node,nln,ntn,ntln, &
                                               UDTPointerCount, &
                                               UDTPointerTable)
 
     TYPE(TreeListNode_t),POINTER :: node
     INTEGER,INTENT(INOUT) :: nln
-    INTEGER,INTENT(INOUT) :: ln_map(:)
     INTEGER,INTENT(INOUT) :: ntn
-    INTEGER,INTENT(INOUT) :: tn_map(:)
     INTEGER,INTENT(INOUT) :: ntln
-    INTEGER,INTENT(INOUT) :: tln_map(:)
     INTEGER(singI),INTENT(INOUT) :: UDTPointerCount
     INTEGER(singI),POINTER :: UDTPointerTable(:,:)
 
@@ -578,7 +570,7 @@ SUBROUTINE TraverseUDTInPreparationForWriting(node,nln,ln_map, &
         UDTPointerTable(UDTPointerCount,3)=TYPE_TREENODE
         IF (ASSOCIATED(tln%tree)) THEN
             UDTPointerTable(UDTPointerCount,4)=ntn+1
-            CALL TraverseTreeNodeInPreparationForWriting(tln%tree,nln,ln_map,ntn,tn_map, &
+            CALL TraverseTreeNodeInPreparationForWriting(tln%tree,nln,ntn, &
                                                          UDTPointerCount,UDTPointerTable)
         ELSE
             UDTPointerTable(UDTPointerCount,4)=0
@@ -618,22 +610,16 @@ SUBROUTINE TraverseListNodeAndWrite(fid,node,nln,ln_m,lnspaceid,lnsetid)
     DO
         IF (.NOT.ASSOCIATED(ln)) EXIT
 
-!         (*nln)++;
         nln=nln+1
-!         H5Sselect_none(lnspaceid);
+
         CALL h5sselect_none_f(lnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
-!         hsize_t coord = *nln;
         coord=INT(nln,hsize_t)
-!         H5Sselect_elements(lnspaceid, H5S_SELECT_SET, 1, &coord);
         CALL h5sselect_elements_f(lnspaceid,H5S_SELECT_SET_F,1,INT(1,hsize_t),coord,hdferr); CALL stopper(hdferr,__LINE__)
-!         H5Dwrite(lnsetid, ln_m, spidm, lnspaceid, H5P_DEFAULT, node);
         ln_scalar=ln
         CALL h5dwrite_f(lnsetid,ln_m,C_LOC(ln_scalar),hdferr,spidm,lnspaceid,H5P_DEFAULT_F); CALL stopper(hdferr,__LINE__)
 
-!         node = node->next;
         ln=>ln%next
     END DO
-!     H5Sclose(spidm);
     CALL h5sclose_f(spidm,hdferr)
 
 END SUBROUTINE TraverseListNodeAndWrite
@@ -658,22 +644,15 @@ RECURSIVE SUBROUTINE TraverseTreeNodeAndWrite(fid, node, &
     INTEGER :: hdferr
 
 
-!     hsize_t hdimm = 1;
     hdimm=1
-!     hid_t spidm = H5Screate_simple(1, &hdimm, 0);
     CALL h5screate_simple_f(1,hdimm,spidm,hdferr); CALL stopper(hdferr,__LINE__)
-!     H5Sselect_all(spidm);
     CALL h5sselect_all_f(spidm,hdferr); CALL stopper(hdferr,__LINE__)
 
-!     (*ntn)++;
     ntn=ntn+1
-!     H5Sselect_none(tnspaceid);
+
     CALL h5sselect_none_f(tnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
-!     hsize_t coord = *ntn;
     coord=INT(ntn,hsize_t)
-!     H5Sselect_elements(tnspaceid, H5S_SELECT_SET, 1, &coord);
     CALL h5sselect_elements_f(tnspaceid,H5S_SELECT_SET_F,1,INT(1,hsize_t),coord,hdferr); CALL stopper(hdferr,__LINE__)
-!     H5Dwrite(tnsetid, tn_m, spidm, tnspaceid, H5P_DEFAULT, node);
     tn_scalar=node
     CALL h5dwrite_f(tnsetid,tn_m,C_LOC(tn_scalar),hdferr,spidm,tnspaceid,H5P_DEFAULT_F); CALL stopper(hdferr,__LINE__)
 
@@ -683,7 +662,7 @@ RECURSIVE SUBROUTINE TraverseTreeNodeAndWrite(fid, node, &
         CALL TraverseTreeNodeAndWrite(fid,node%left,nln,ln_m,lnspaceid,lnsetid,ntn,tn_m,tnspaceid,tnsetid)
     IF (ASSOCIATED(node%right)) &
         CALL TraverseTreeNodeAndWrite(fid,node%right,nln,ln_m,lnspaceid,lnsetid,ntn,tn_m,tnspaceid,tnsetid)
-!     H5Sclose(spidm);
+
     CALL h5sclose_f(spidm,hdferr)
 
 END SUBROUTINE TraverseTreeNodeAndWrite
@@ -709,37 +688,27 @@ SUBROUTINE TraverseUDTAndWrite(fid,node, &
     TYPE(TreeListNode_t),POINTER :: tln
     TYPE(TreeListNode_t),TARGET :: tln_scalar
     INTEGER(hsize_t) :: coord(1,1)
-    INTEGER(hsize_t) :: dims(1,1),length
     INTEGER :: hdferr
 
     tln=>NULL()
 
 
-!     hsize_t hdimm = 1;
     hdimm=1
-!     hid_t spidm = H5Screate_simple(1, &hdimm, 0);
     CALL h5screate_simple_f(1,hdimm,spidm,hdferr); CALL stopper(hdferr,__LINE__)
-!     H5Sselect_all(spidm);
     CALL h5sselect_all_f(spidm,hdferr); CALL stopper(hdferr,__LINE__)
 
-!     *nln = *ntn = *ntln = 0;
     tln=>node
     DO
         IF (.NOT.ASSOCIATED(tln)) EXIT
 
-        tln_scalar=tln
-
         ntln=ntln+1
-!         hsize_t coord = *ntln;
+
         coord=INT(ntln,hsize_t)
         CALL h5sselect_none_f(tlnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
         CALL h5sselect_elements_f(tlnspaceid,H5S_SELECT_SET_F,1,INT(1,hsize_t),coord,hdferr); CALL stopper(hdferr,__LINE__)
-        ! CALL h5sselect_all_f(tlnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
-        ! dims should be ignored
-        dims=-1
-        length=INT(1,hsize_t)
-        ! H5Dwrite(tlnid, tln_m, spidm, tlnspid, H5P_DEFAULT, node);
+        tln_scalar=tln
         CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln_scalar),hdferr,spidm,tlnspaceid,H5P_DEFAULT_F); CALL stopper(hdferr,__LINE__)
+
         IF (ASSOCIATED(tln%tree)) THEN
             CALL TraverseTreeNodeAndWrite(fid,tln%tree, &
                 nln, ln_m, lnspaceid, lnsetid, &
@@ -748,7 +717,6 @@ SUBROUTINE TraverseUDTAndWrite(fid,node, &
 
         tln=>tln%next
     END DO
-!     H5Sclose(spidm);
     CALL h5sclose_f(spidm,hdferr)
 
 END SUBROUTINE TraverseUDTAndWrite
@@ -812,10 +780,6 @@ PROGRAM main
     INTEGER(hid_t) :: lnsetid,tnsetid,tlnsetid;
     INTEGER(hsize_t) :: hdim(1)
     INTEGER :: i,nln,ntn,ntln
-! ListNode_t const *ln_map[64];
-    INTEGER :: ln_map(64)
-    INTEGER :: tn_map(64)
-    INTEGER :: tln_map(64)
     !
     ! indexing is as follows:
     ! i1=number of "graph edges", or pointers of the form "UDT1->UDT2"
@@ -853,7 +817,7 @@ PROGRAM main
 
     ! Create memory POINTER types. These are never committed and are only
     ! used to facilitate the conversion process on write and read.
-    ! The associated file types will be a suitable integer type.
+    ! The associated file types will be ignored.
     CALL h5tcreate_f(H5T_OPAQUE_F,INT(STORAGE_SIZE(dummy_ptr)/8,SIZE_T),ln_p,hdferr); CALL stopper(hdferr,__LINE__)
     CALL h5tset_tag_f(ln_p,"ListNode_t pointer",hdferr)
     CALL h5tcreate_f(H5T_OPAQUE_F,INT(STORAGE_SIZE(dummy_ptr)/8,SIZE_T),tn_p,hdferr); CALL stopper(hdferr,__LINE__)
@@ -867,12 +831,9 @@ PROGRAM main
     CALL CreateTreeListNodeTypes(tgid,tln_p,tln_m,tln_f)
 
     nln=0
-    ln_map=0
     ntn=0
-    tn_map=0
     ntln=0
-    tln_map=0
-    CALL TraverseUDTInPreparationForWriting(head,nln,ln_map,ntn,tn_map,ntln,tln_map, &
+    CALL TraverseUDTInPreparationForWriting(head,nln,ntn,ntln, &
                                             UDTPointerCount,UDTPointerTable)
 ! print out the pointer table for a quick check
 ALLOCATE(UDTPtrHDF(UDTPointerCount,4))
@@ -898,7 +859,7 @@ DO iPointer=1,UDTPointerCount
         " -> type """,TRIM(type2str), &
         """, index ",UDTPointerTable(iPointer,4)
 END DO
-    ! currently has a lot of zeros
+    ! currently has a lot of repeated values
     ! lets do some conditioning . . . 
     phdim(1)=INT(UDTPointerCount,hsize_t)
     phdim(2)=INT(4,hsize_t)
@@ -914,43 +875,22 @@ END DO
     CALL h5sclose_f(pspaceid,hdferr)
     DEALLOCATE(UDTPtrHDF)
 
-! #ifdef DEBUG
-!     printf("nln = %d, ntn = %d, ntln = %d\n", nln, ntn, ntln);
-    ! WRITE(UNIT=*,FMT='(a,i0,a,i0,a,i0)') "nln = ",nln,", ntn = ",ntn,", ntln = ",ntln
-!     printf("\nList Node Map:");
-!     for (i = 0; i < nln; i++)
-!         printf("%s%p", i%5?", ":"\n    ", ln_map[i]);
-!     printf("\nTree Node Map:");
-!     for (i = 0; i < ntn; i++)
-!         printf("%s%p", i%5?", ":"\n    ", tn_map[i]);
-!     printf("\nTree List Node Map:");
-!     for (i = 0; i < ntln; i++)
-!         printf("%s%p", i%5?", ":"\n    ", tln_map[i]);
-!     printf("\n");
-! #endif
-
     ! Create Datasets; one for each UDT
     hdim=INT(nln,hsize_t)
-!     lnspaceid = H5Screate_simple(1, &hdim, 0);
     CALL h5screate_simple_f(1,hdim,lnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
-!     lnsetid = H5Dcreate(fid, "ListNode_data", ln_f, lnspaceid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     CALL h5dcreate_f(fid,"ListNode_data",ln_f,lnspaceid,lnsetid,hdferr); CALL stopper(hdferr,__LINE__)
 
     hdim=INT(ntn,hsize_t)
-!     tnspaceid = H5Screate_simple(1, &hdim, 0);
     CALL h5screate_simple_f(1,hdim,tnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
-!     tnsetid = H5Dcreate(fid, "TreeNode_data", tn_f, tnspaceid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     CALL h5dcreate_f(fid,"TreeNode_data",tn_f,tnspaceid,tnsetid,hdferr); CALL stopper(hdferr,__LINE__)
 
     hdim=INT(ntln,hsize_t)
-!     tlnspaceid = H5Screate_simple(1, &hdim, 0);
     CALL h5screate_simple_f(1,hdim,tlnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
-!     tlnsetid = H5Dcreate(fid, "TreeListNode_data", tln_f, tlnspaceid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     CALL h5dcreate_f(fid,"TreeListNode_data",tln_f,tlnspaceid,tlnsetid,hdferr); CALL stopper(hdferr,__LINE__)
 
-    ! Do the actual traversal and writing. Note, pointer->int conversions happen
-    ! automatically as hdf5 encounters the need due to src and dst type mismatches.
-! THIS COMMENT DOESNT REALLY APPLY NOW . . .
+    ! Do the actual traversal and writing. Note, pointer->int conversions are
+    ! not supproted in fortran; the UDTPointerTable keeps track of these
+    ! relationships.
     nln=0
     ntn=0
     ntln=0
@@ -965,7 +905,7 @@ END DO
 
     CALL h5dclose_f(tlnsetid,hdferr)
     CALL h5sclose_f(tlnspaceid,hdferr)
-!     H5Dclose(tnsetid);
+    CALL h5dclose_f(tnsetid,hdferr)
     CALL h5sclose_f(tnspaceid,hdferr)
     CALL h5dclose_f(lnsetid,hdferr)
     CALL h5sclose_f(lnspaceid,hdferr)
