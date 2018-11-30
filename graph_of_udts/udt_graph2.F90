@@ -44,6 +44,11 @@ MODULE UDTsCompounds
         TYPE(TreeNode_t),POINTER :: right
         TYPE(ListNode_t),POINTER :: list
     END TYPE TreeNode_t
+    TYPE TreeNode_t1
+        INTEGER(singI) :: memberA
+        INTEGER(singI) :: memberB
+        DOUBLE PRECISION :: coords(3)
+    END TYPE TreeNode_t1
 
     TYPE TreeListNode_t
         CHARACTER(LEN=32) :: name=""
@@ -455,36 +460,63 @@ END SUBROUTINE CreateListNodeTypes
 
 
 !==========================================================================
-! void CreateTreeNodeTypes(hid_t fid, hid_t *mtype, hid_t *ftype)
-! {
-!     TreeNode_t dummy;
-!     hid_t mcoords, fcoords;
+SUBROUTINE CreateTreeNodeTypes(fid,tn_p,ln_p,mtype,ftype)
+
+    INTEGER(hid_T),INTENT(IN) :: fid,tn_p,ln_p
+    INTEGER(hid_t),INTENT(OUT) :: mtype,ftype
+
+    TYPE(TreeNode_t),TARGET :: dummy
+    TYPE(TreeNode_t1),TARGET :: dummy1
 !     hsize_t dims = 3;
+    INTEGER(hsize_t) :: dims(1)=3
+    INTEGER(HID_T) :: mcoords,fcoords
+    INTEGER :: hdferr
 
-!     /* memory type */
+
+WRITE(UNIT=*,FMT='(a,i0)') "TreeNode_t, without pointers=",(STORAGE_SIZE(dummy1)/8)
+WRITE(UNIT=*,FMT='(a,i0)') "TreeNode_t, with pointers=",(STORAGE_SIZE(dummy)/8)
+    ! memory type
 !     mcoords = H5Tarray_create(H5T_NATIVE_DOUBLE, 1, &dims);
+    CALL h5tarray_create_f(H5T_NATIVE_DOUBLE,1,dims,mcoords,hdferr); CALL stopper(hdferr,__LINE__)
 !     *mtype = H5Tcreate(H5T_COMPOUND, sizeof(TreeNode_t));
+    CALL h5tcreate_f(H5T_COMPOUND_F,INT(STORAGE_SIZE(dummy)/8,hsize_t),mtype,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "memberA", OFFSET(dummy, memberA), H5T_NATIVE_INT);
+    CALL h5tinsert_f(mtype,"memberA",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%memberA)),h5kind_to_type(singI,H5_INTEGER_KIND),hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "memberB", OFFSET(dummy, memberB), H5T_NATIVE_INT);
+    CALL h5tinsert_f(mtype,"memberB",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%memberB)),h5kind_to_type(singI,H5_INTEGER_KIND),hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "coords", OFFSET(dummy, coords), mcoords);
+    CALL h5tinsert_f(mtype,"coords",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%coords)),mcoords,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "left", OFFSET(dummy, left), tn_p);
+    CALL h5tinsert_f(mtype,"left",INT(32,SIZE_T),tn_p,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "right", OFFSET(dummy, right), tn_p);
+    CALL h5tinsert_f(mtype,"right",INT(40,SIZE_T),tn_p,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*mtype, "list", OFFSET(dummy, list), ln_p);
+    CALL h5tinsert_f(mtype,"list",INT(48,SIZE_T),ln_p,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tclose(mcoords);
+    CALL h5tclose_f(mcoords,hdferr); CALL stopper(hdferr,__LINE__)
 
-!     /* file type */
+    ! file type
 !     fcoords = H5Tarray_create(H5T_NATIVE_DOUBLE, 1, &dims);
+    CALL h5tarray_create_f(H5T_NATIVE_DOUBLE,1,dims,fcoords,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tcommit(fid, "coords", fcoords, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    CALL h5tcommit_f(fid,"coords",fcoords,hdferr); CALL stopper(hdferr,__LINE__)
 !     *ftype = H5Tcreate(H5T_COMPOUND, sizeof(TreeNode_t));
+    CALL h5tcreate_f(H5T_COMPOUND_F,INT(STORAGE_SIZE(dummy)/8,hsize_t),ftype,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*ftype, "memberA", OFFSET(dummy, memberA), H5T_NATIVE_INT);
+    CALL h5tinsert_f(ftype,"memberA",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%memberA)),h5kind_to_type(singI,H5_INTEGER_KIND),hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*ftype, "memberB", OFFSET(dummy, memberB), H5T_NATIVE_INT);
+    CALL h5tinsert_f(ftype,"memberB",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%memberB)),h5kind_to_type(singI,H5_INTEGER_KIND),hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*ftype, "coords", OFFSET(dummy, coords), fcoords);
+    CALL h5tinsert_f(ftype,"coords",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%coords)),fcoords,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tinsert(*ftype, "left", OFFSET(dummy, left), H5T_NATIVE_INT);
 !     H5Tinsert(*ftype, "right", OFFSET(dummy, right), H5T_NATIVE_INT);
 !     H5Tinsert(*ftype, "list", OFFSET(dummy, list), H5T_NATIVE_INT);
 !     H5Tcommit(fid, "TreeNode_t", *ftype, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    CALL h5tcommit_f(fid,"TreeNode_t",ftype,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Tclose(fcoords);
-! }
+    CALL h5tclose_f(fcoords,hdferr); CALL stopper(hdferr,__LINE__)
+
+END SUBROUTINE CreateTreeNodeTypes
 
 
 !==========================================================================
@@ -493,11 +525,11 @@ SUBROUTINE CreateTreeListNodeTypes(fid,tln_p,mtype,ftype)
     INTEGER(hid_t),INTENT(IN) :: fid,tln_p
     INTEGER(hid_t),INTENT(OUT) :: mtype,ftype
 
-    INTEGER :: hdferr
     TYPE(TreeListNode_t),TARGET :: dummy
     TYPE(TreeListNode_t1) :: dummy1
     INTEGER(hid_t) :: mname,fname
 !     hsize_t dims = 32;
+    INTEGER :: hdferr
 
 
 WRITE(UNIT=*,FMT='(a,i0)') "TreeListNode_t, without pointers=",(STORAGE_SIZE(dummy1)/8)
@@ -527,6 +559,7 @@ WRITE(UNIT=*,FMT='(a,i0)') "  offset of ""next""=",H5OFFSETOF(C_LOC(dummy),C_LOC
     ! CALL h5tinsert_f(mtype,"next",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%next)),H5T_OPAQUE_F,hdferr)
     ! CALL h5tinsert_f(mtype,"next",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%next)),H5T_REFERENCE_F,hdferr)
     ! CALL h5tinsert_f(mtype,"next",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%next)),tln_p,hdferr)
+! XXX: H5OFFSETOF not working
     CALL h5tinsert_f(mtype,"next",INT(56,SIZE_T),tln_p,hdferr); CALL stopper(hdferr,__LINE__)
     ! CALL h5tinsert_f(mtype,"next",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%next)),h5kind_to_type(pntrI,H5_INTEGER_KIND),hdferr)
 WRITE(UNIT=*,FMT='(a,i0)') "  offset of ""prev""=",H5OFFSETOF(C_LOC(dummy),C_LOC(dummy%prev))
@@ -672,34 +705,59 @@ END SUBROUTINE TraverseUDTInPreparationForWriting
 ! }
 
 
-! //=========================================================================
-! void TraverseTreeNodeAndWrite(hid_t fid, TreeNode_t const *node,
-!     int *nln, hid_t ln_m, hid_t lnspaceid, hid_t lnsetid,
-!     int *ntn, hid_t tn_m, hid_t tnspaceid, hid_t tnid)
-! {
-!     hsize_t hdimm = 1;
-!     hid_t spidm = H5Screate_simple(1, &hdimm, 0);
-!     hsize_t coord = *ntn;
+!==========================================================================
+RECURSIVE SUBROUTINE TraverseTreeNodeAndWrite(fid, node, &
+    nln, ln_m, lnspaceid, lnsetid, &
+    ntn, tn_m, tnspaceid, tnsetid)
 
+    INTEGER(hid_t),INTENT(IN) :: fid
+    TYPE(TreeNode_t),POINTER :: node
+    INTEGER,INTENT(INOUT) :: nln
+    INTEGER(hid_t),INTENT(IN) :: ln_m,lnspaceid,lnsetid
+    INTEGER,INTENT(INOUT) :: ntn
+    INTEGER(hid_t),INTENT(IN) :: tn_m,tnspaceid,tnsetid
+
+    INTEGER(hsize_t) :: hdimm(1)
+    INTEGER(hid_t) :: spidm
+    INTEGER(hsize_t) :: coord(1,1)
+    TYPE(TreeNode_t),TARGET :: tn_scalar
+    INTEGER :: hdferr
+
+
+!     hsize_t hdimm = 1;
+    hdimm=1
+!     hid_t spidm = H5Screate_simple(1, &hdimm, 0);
+    CALL h5screate_simple_f(1,hdimm,spidm,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Sselect_all(spidm);
+    CALL h5sselect_all_f(spidm,hdferr); CALL stopper(hdferr,__LINE__)
+
 !     (*ntn)++;
+    ntn=ntn+1
 !     H5Sselect_none(tnspaceid);
+    CALL h5sselect_none_f(tnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
+!     hsize_t coord = *ntn;
+    coord=INT(ntn,hsize_t)
 !     H5Sselect_elements(tnspaceid, H5S_SELECT_SET, 1, &coord);
-!     H5Dwrite(tnid, tn_m, spidm, tnspaceid, H5P_DEFAULT, node);
+    CALL h5sselect_elements_f(tnspaceid,H5S_SELECT_SET_F,1,INT(1,hsize_t),coord,hdferr); CALL stopper(hdferr,__LINE__)
+!     H5Dwrite(tnsetid, tn_m, spidm, tnspaceid, H5P_DEFAULT, node);
+    tn_scalar=node
+    CALL h5dwrite_f(tnsetid,tn_m,C_LOC(tn_scalar),hdferr,spidm,tnspaceid,H5P_DEFAULT_F); CALL stopper(hdferr,__LINE__)
 !     if (node->list)
 !         TraverseListNodeAndWrite(fid, node->list, nln, ln_m, lnspaceid, lnsetid);
-!     if (node->left)
-!         TraverseTreeNodeAndWrite(fid, node->left, nln, ln_m, lnspaceid, lnsetid, ntn, tn_m, tnspaceid, tnid);
-!     if (node->right)
-!         TraverseTreeNodeAndWrite(fid, node->right, nln, ln_m, lnspaceid, lnsetid, ntn, tn_m, tnspaceid, tnid);
+    IF (ASSOCIATED(node%left)) &
+        CALL TraverseTreeNodeAndWrite(fid,node%left,nln,ln_m,lnspaceid,lnsetid,ntn,tn_m,tnspaceid,tnsetid)
+    IF (ASSOCIATED(node%right)) &
+        CALL TraverseTreeNodeAndWrite(fid,node%right,nln,ln_m,lnspaceid,lnsetid,ntn,tn_m,tnspaceid,tnsetid)
 !     H5Sclose(spidm);
-! }
+    CALL h5sclose_f(spidm,hdferr)
+
+END SUBROUTINE TraverseTreeNodeAndWrite
 
 
 !==========================================================================
 SUBROUTINE TraverseUDTAndWrite(fid,node, &
     nln, ln_m, lnspaceid, lnsetid, &
-    ntn, tn_m, tnspaceid, tnid, &
+    ntn, tn_m, tnspaceid, tnsetid, &
     ntln, tln_m, tlnspaceid, tlnsetid)
 
     INTEGER(hid_t),INTENT(IN) :: fid
@@ -707,7 +765,7 @@ SUBROUTINE TraverseUDTAndWrite(fid,node, &
     INTEGER,INTENT(INOUT) :: nln
     INTEGER(hid_t),INTENT(IN) :: ln_m,lnspaceid,lnsetid
     INTEGER,INTENT(INOUT) :: ntn
-    INTEGER(hid_t),INTENT(IN) :: tn_m,tnspaceid,tnid
+    INTEGER(hid_t),INTENT(IN) :: tn_m,tnspaceid,tnsetid
     INTEGER,INTENT(INOUT) :: ntln
     INTEGER(hid_t),INTENT(IN) :: tln_m,tlnspaceid,tlnsetid
 
@@ -715,7 +773,6 @@ SUBROUTINE TraverseUDTAndWrite(fid,node, &
     INTEGER(hid_t) :: spidm
     TYPE(TreeListNode_t),POINTER :: tln
     TYPE(TreeListNode_t),TARGET :: tln_scalar
-    TYPE(TreeListNode_t),TARGET,DIMENSION(1:6) :: tln_array
     INTEGER(hsize_t) :: coord(1,1)
     INTEGER(hsize_t) :: dims(1,1),length
     INTEGER :: hdferr
@@ -725,7 +782,6 @@ SUBROUTINE TraverseUDTAndWrite(fid,node, &
 
 !     hsize_t hdimm = 1;
     hdimm=1
-    ! hdimm=6
 !     hid_t spidm = H5Screate_simple(1, &hdimm, 0);
     CALL h5screate_simple_f(1,hdimm,spidm,hdferr); CALL stopper(hdferr,__LINE__)
 !     H5Sselect_all(spidm);
@@ -736,25 +792,9 @@ SUBROUTINE TraverseUDTAndWrite(fid,node, &
     DO
         IF (.NOT.ASSOCIATED(tln)) EXIT
 
-        tln_array=tln
-! WRITE(UNIT=*,FMT='(a,a,a)') "tln%name=""",TRIM(tln%name),""""
-! WRITE(UNIT=*,FMT='(a,i0)') "tln%val1=",tln%val1
-! WRITE(UNIT=*,FMT='(a,es22.15)') "tln%val2=",tln%val2
-! WRITE(UNIT=*,FMT='(a,es12.5)') "tln%val3=",tln%val3
-! WRITE(UNIT=*,FMT='(a,L)') "ASSOCIATED(tln%next)=",ASSOCIATED(tln%next)
-! WRITE(UNIT=*,FMT='(a,es12.5)') "tln%next%val3=",tln%next%val3
-! WRITE(UNIT=*,FMT='(a,a,a)') "tln_array(1)%name=""",TRIM(tln_array(1)%name),""""
-! WRITE(UNIT=*,FMT='(a,i0)') "tln_array(1)%val1=",tln_array(1)%val1
-! WRITE(UNIT=*,FMT='(a,es22.15)') "tln_array(1)%val2=",tln_array(1)%val2
-! WRITE(UNIT=*,FMT='(a,es12.5)') "tln_array(1)%val3=",tln_array(1)%val3
-! WRITE(UNIT=*,FMT='(a,L)') "ASSOCIATED(tln_array(1)%next)=",ASSOCIATED(tln_array(1)%next)
-! IF (ASSOCIATED(tln_array(1)%next)) THEN
-! WRITE(UNIT=*,FMT='(a,es12.5)') "tln_array(1)%next%val3=",tln_array(1)%next%val3
-! END IF
         tln_scalar=tln
 
         ntln=ntln+1
-WRITE(UNIT=*,FMT='(a,i0)') "ntln=",ntln 
 !         hsize_t coord = *ntln;
         coord=INT(ntln,hsize_t)
         CALL h5sselect_none_f(tlnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
@@ -764,18 +804,17 @@ WRITE(UNIT=*,FMT='(a,i0)') "ntln=",ntln
         dims=-1
         length=INT(1,hsize_t)
         ! H5Dwrite(tlnid, tln_m, spidm, tlnspid, H5P_DEFAULT, node);
-        ! CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln),hdferr,spidm,tlnspaceid,H5P_DEFAULT_F)
-        ! CALL h5dwrite_f(tlnsetid,tln_m,tln,hdferr,spidm,tlnspaceid,H5P_DEFAULT_F)
-        ! CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln_array(1)),hdferr,spidm,tlnspaceid,H5P_DEFAULT_F); CALL stopper(hdferr,__LINE__)
         CALL h5dwrite_f(tlnsetid,tln_m,C_LOC(tln_scalar),hdferr,spidm,tlnspaceid,H5P_DEFAULT_F); CALL stopper(hdferr,__LINE__)
-!         if (node->tree) {
-!             TraverseTreeNodeAndWrite(fid, node->tree,
-!                 nln, ln_m, lnspaceid, lnsetid,
-!                 ntn, tn_m, tnspaceid, tnid);
-!         }
+        IF (ASSOCIATED(tln%tree)) THEN
+            CALL TraverseTreeNodeAndWrite(fid,tln%tree, &
+                nln, ln_m, lnspaceid, lnsetid, &
+                ntn, tn_m, tnspaceid, tnsetid)
+        END IF
 
         tln=>tln%next
     END DO
+!     H5Sclose(spidm);
+    CALL h5sclose_f(spidm,hdferr)
 
 END SUBROUTINE TraverseUDTAndWrite
 
@@ -814,7 +853,7 @@ PROGRAM main
     INTEGER(hid_t) :: ln_p,tn_p,tln_p
     INTEGER(hid_t) :: ln_m,ln_f,tn_m,tn_f,tln_m,tln_f
     INTEGER(hid_t) :: lnspaceid,tnspaceid,tlnspaceid
-    INTEGER(hid_t) :: lnsetid,tndsid,tlnsetid;
+    INTEGER(hid_t) :: lnsetid,tnsetid,tlnsetid;
     INTEGER(hsize_t) :: hdim(1)
     INTEGER :: i,nln,ntn,ntln
 ! ListNode_t const *ln_map[64];
@@ -833,22 +872,22 @@ PROGRAM main
 
     ! Create the HDF5 file
     CALL h5open_f(hdferr)
-    CALL h5fcreate_f("test_hdf5_udt_compounds_f.h5",H5F_ACC_TRUNC_F,fid,hdferr)
+    CALL h5fcreate_f("udt_graph2_f.h5",H5F_ACC_TRUNC_F,fid,hdferr)
     CALL h5gcreate_f(fid,"Types",tgid,hdferr)
 
     ! Create memory POINTER types. These are never committed and are only
     ! used to facilitate the conversion process on write and read.
     ! The associated file types will be a suitable integer type.
-    ! CALL h5tcreate_f(H5T_OPAQUE_F,INT(STORAGE_SIZE(head%tree%list)/8,SIZE_T),ln_p,hdferr)
-    ! CALL h5tset_tag_f(ln_p,"ListNode_t pointer",hdferr)
-!     tn_p = H5Tcreate(H5T_OPAQUE, sizeof(TreeNode_t*));
-!     H5Tset_tag(tn_p, "TreeNode_t*");
+    CALL h5tcreate_f(H5T_OPAQUE_F,INT(STORAGE_SIZE(dummy_ptr)/8,SIZE_T),ln_p,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5tset_tag_f(ln_p,"ListNode_t pointer",hdferr)
+    CALL h5tcreate_f(H5T_OPAQUE_F,INT(STORAGE_SIZE(dummy_ptr)/8,SIZE_T),tn_p,hdferr); CALL stopper(hdferr,__LINE__)
+    CALL h5tset_tag_f(tn_p,"TreeNode_t pointer",hdferr)
     CALL h5tcreate_f(H5T_OPAQUE_F,INT(STORAGE_SIZE(dummy_ptr)/8,SIZE_T),tln_p,hdferr); CALL stopper(hdferr,__LINE__)
     CALL h5tset_tag_f(tln_p,"TreeListNode_t pointer",hdferr)
 
     ! Create memory and file types for our 3 user defined types
     CALL CreateListNodeTypes(tgid,ln_m,ln_f)
-!     CreateTreeNodeTypes(tgid, &tn_m, &tn_f);
+    CALL CreateTreeNodeTypes(tgid,tn_p,ln_p,tn_m,tn_f)
     CALL CreateTreeListNodeTypes(tgid,tln_p,tln_m,tln_f)
 
     nln=0
@@ -884,7 +923,8 @@ PROGRAM main
     hdim=INT(ntn,hsize_t)
 !     tnspaceid = H5Screate_simple(1, &hdim, 0);
     CALL h5screate_simple_f(1,hdim,tnspaceid,hdferr); CALL stopper(hdferr,__LINE__)
-!     tndsid = H5Dcreate(fid, "TreeNode_data", tn_f, tnspaceid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+!     tnsetid = H5Dcreate(fid, "TreeNode_data", tn_f, tnspaceid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    CALL h5dcreate_f(fid,"TreeNode_data",tn_f,tnspaceid,tnsetid,hdferr); CALL stopper(hdferr,__LINE__)
 
     hdim=INT(ntln,hsize_t)
 !     tlnspaceid = H5Screate_simple(1, &hdim, 0);
@@ -900,7 +940,7 @@ PROGRAM main
     ntln=0
     CALL TraverseUDTAndWrite(fid,head, &
         nln, ln_m, lnspaceid, lnsetid, &
-        ntn, tn_m, tnspaceid, tndsid, &
+        ntn, tn_m, tnspaceid, tnsetid, &
         ntln, tln_m, tlnspaceid, tlnsetid)
 
 ! #ifdef DEBUG
@@ -909,7 +949,7 @@ PROGRAM main
 
     CALL h5dclose_f(tlnsetid,hdferr)
     CALL h5sclose_f(tlnspaceid,hdferr)
-!     H5Dclose(tndsid);
+!     H5Dclose(tnsetid);
     CALL h5sclose_f(tnspaceid,hdferr)
     CALL h5dclose_f(lnsetid,hdferr)
     CALL h5sclose_f(lnspaceid,hdferr)
