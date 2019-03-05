@@ -53,15 +53,17 @@ void decode_unit(char const *unit_str,
         ":%d:%d:%d:%d:%d:%d:%d"
         ":%d:%d:%d:%d:%d:%d:%d"
         ":%lg:%lg:%lg:%lg",
-        &num[0], &num[1], &num[2], &num[3], &num[5], &num[5], &num[6],
-        &den[0], &den[1], &den[2], &den[3], &den[5], &den[5], &den[6],
+        &num[0], &num[1], &num[2], &num[3], &num[4], &num[5], &num[6],
+        &den[0], &den[1], &den[2], &den[3], &den[4], &den[5], &den[6],
         mult, offset, logbase, logcoeff);
     assert(n==18);
 }
 
 double xform_unit(double val, char const *src_units, char const *dst_units)
 {
+    int i;
     unsigned int src_num[7], src_den[7], dst_num[7], dst_den[7];
+    unsigned int src_red[7], dst_red[7];
     double src_mult, src_offset, src_logbase, src_logcoeff;
     double dst_mult, dst_offset, dst_logbase, dst_logcoeff;
 
@@ -71,6 +73,15 @@ double xform_unit(double val, char const *src_units, char const *dst_units)
     /* decode dst units */
     decode_unit(dst_units, dst_num, dst_den, &dst_mult, &dst_offset, &dst_logbase, &dst_logcoeff);
 
+    /* reduce numerator and denominator of src and dst */
+    for (i = 0; i < sizeof(src_num)/sizeof(src_num[0]); i++)
+    {
+        src_red[i] = src_num[i] - src_den[1];
+        dst_red[i] = dst_num[i] - dst_den[1];
+    }
+    assert(!memcmp(src_red, dst_red, sizeof(src_red)));
+
+#if 0
     /* Going from base is...
     val = dst_logcoeff * log(val) / log(dst_logbase) * dst_mult + dst_offset; */
 
@@ -81,8 +92,9 @@ double xform_unit(double val, char const *src_units, char const *dst_units)
 
     /* convert from standard units to dst units */
     val = dst_logcoeff * log(val) / log(dst_logbase) * dst_mult + dst_offset;
+#endif
 
-#if 0
+#if 1
     if (src_logbase == 0 && dst_logbase == 0)
     {
         /* convert from src units to standard units */
@@ -153,9 +165,8 @@ int main()
        unsigned int den[7] = {0,1,0,0,0,0,0};
 
        char *rads = encode_unit("Radians", num, den, 1, 0, 0, 1);
-       char *degs = encode_unit("Degrees", num, den, 
+       char *degs = encode_unit("Degrees", num, den, 180.0/M_PI, 0, 0, 1);
     }
-    
     
     return 0;
 }
