@@ -11,11 +11,14 @@ We demonstrate 3 progressively more advanced examples of using HDF5 to write thi
 ### Naive C Example
 
 In the first example, `udt_graph1.c`, each *node* in the graph of UDTs is realized as an
-HDF5 *group*. The data associated with a specific UDT modulo any pointers is written as
-a singleton *dataset* (e.g. a dataset with a single *point*).
+HDF5 *group*. The data associated with a specific UDT, sans its pointer members, is written
+as a singleton *dataset* (e.g. a dataset with a single *point*) within the HDF5 *group*
+repesenting the node in the graph of UDTs. The *pointers* which link individual UDT
+instances together are realized as *containership* in HDF5's *groups*. If UDT instance
+`A` points to UDT instance `B` the `B` should appear as a sub-group of `A`.
 
-Very simple from a software engineering standpoint. However, HDF5 file overheads are bad.
-Overheads for groups and datasets.
+This is a very simple approach from a software engineering standpoint. However, HDF5 file
+overheads are bad. Overheads for groups and datasets.
 
 ### Better way to use HDF5 for this case.
 
