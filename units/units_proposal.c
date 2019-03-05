@@ -62,6 +62,7 @@ void decode_unit(char const *unit_str,
 double xform_unit(double val, char const *src_units, char const *dst_units)
 {
     int i;
+    unsigned int const zeros[7] = {0,0,0,0,0,0,0};
     unsigned int src_num[7], src_den[7], dst_num[7], dst_den[7];
     unsigned int src_red[7], dst_red[7];
     double src_mult, src_offset, src_logbase, src_logcoeff;
@@ -98,7 +99,7 @@ double xform_unit(double val, char const *src_units, char const *dst_units)
     if (src_logbase == 0 && dst_logbase == 0)
     {
         /* convert from src units to standard units */
-        val = val * src_mult + src_offset;
+        val = (val - src_offset) / src_mult;
 
         /* convert from standard units to dst units */
         val = val * dst_mult + dst_offset;
@@ -151,7 +152,7 @@ int main()
                            /* l,m,t,e,T,A,L */
        unsigned int num[7] = {0,0,0,0,1,0,0};
        unsigned int den[7] = {0,0,0,0,0,0,0};
-       double val = M_PI * 100;
+       double val = M_PI * 100; /* units of Kelvin */
 
        char *kelvin = encode_unit("Kelvin", num, den, 1, 0, 0, 1);
        char *farhenheit = encode_unit("Fahrenheit", num, den, (double)9/5, -459.67, 0, 1);
@@ -163,10 +164,26 @@ int main()
                            /* l,m,t,e,T,A,L */
        unsigned int num[7] = {0,1,0,0,0,0,0};
        unsigned int den[7] = {0,1,0,0,0,0,0};
+       double val = 90; /* units of degrees */
 
        char *rads = encode_unit("Radians", num, den, 1, 0, 0, 1);
        char *degs = encode_unit("Degrees", num, den, 180.0/M_PI, 0, 0, 1);
+       printf("%g %s converts to %g %s\n", val, degs, xform_unit(val, degs, rads), rads);
     }
-    
+
+    /* solid angular values */
+    {
+                           /* l,m,t,e,T,A,L */
+       unsigned int num[7] = {0,2,0,0,0,0,0};
+       unsigned int den[7] = {0,2,0,0,0,0,0};
+       double val = 10000; /* units of square degrees */
+
+       char *strads = encode_unit("Steradians", num, den, 1, 0, 0, 1);
+       char *sqdegs= encode_unit("Square Degrees", num, den, 180.0/M_PI*180.0/M_PI, 0, 0, 1);
+       char *soldegs = encode_unit("Radians", num, den, acos(1.0-1/(2*M_PI)), 0, 0, 1);
+       printf("%g %s converts to %g %s\n", val, sqdegs, xform_unit(val, sqdegs, strads), strads);
+       printf("%g %s converts to %g %s\n", 3.04617, strads, xform_unit(3.04617, strads, sqdegs), sqdegs);
+    }
+
     return 0;
 }
