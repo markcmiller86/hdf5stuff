@@ -38,7 +38,8 @@ specified by the command-line arguments.
             A = PARSEA;                                         \
             break;                                              \
         }                                                       \
-        else if (!strncasecmp(argv[i], "help", 4))              \
+        else if (!strcasestr(argv[i], "help") &&                \
+                 !strncasecmp(#A, "help",4))                    \
         {                                                       \
             return 0;                                           \
         }                                                       \
@@ -309,10 +310,10 @@ int main(int argc, char **argv)
 
     /* file arguments */
     strcpy(ofile, "test_doubles.dat");
-    HANDLE_ARG(ofile,strndup(argv[i]+len2,NAME_LEN), "\"%s\"",set output filename);
 
     /* dataset arguments */
     HANDLE_SEP(Data Generation Arguments)
+    HANDLE_ARG(ofile,strndup(argv[i]+len2,NAME_LEN), "\"%s\"",set output filename);
     HANDLE_ARG(ndims,(int)strtol(argv[i]+len2,0,10), "%d",number dimensions in data);
     HANDLE_ARG(n0,(int)strtol(argv[i]+len2,0,10), "%d",size of dimension 0 (ndims>0));
     HANDLE_ARG(c0,(int)strtol(argv[i]+len2,0,10), "%d",de-coorelate dimension 0? (1/0=Y/n));
