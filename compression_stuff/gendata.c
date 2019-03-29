@@ -309,7 +309,7 @@ int main(int argc, char **argv)
     double *dbuf = 0;
 
     /* file arguments */
-    strcpy(ofile, "test_doubles.dat");
+    strcpy(ofile, "test_dbls.dat");
 
     /* dataset arguments */
     HANDLE_SEP(Data Generation Arguments)
@@ -324,6 +324,8 @@ int main(int argc, char **argv)
     HANDLE_ARG(dtyp,(int)strtol(argv[i]+len2,0,10), "%d",data type (1=int32, 2=flt64));
     HANDLE_ARG(jitter,(double) strtod(argv[i]+len2,0),"%g",jitter abscissa to separable funcs);
     HANDLE_ARG(help,(int)strtol(argv[i]+len2,0,10),"%d",this help message); /* must be last for help to work */
+    if (!strncmp(ofile, "test_dbls.dat", 13) && dtyp == TYPINT)
+        strcpy(ofile, "test_ints.dat");
 
     i = 0;
     if (ndims > 0 && c0 != 0) ucdims[i++] = 0;
