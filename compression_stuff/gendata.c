@@ -38,7 +38,7 @@ specified by the command-line arguments.
             A = PARSEA;                                         \
             break;                                              \
         }                                                       \
-        else if (!strcasestr(argv[i], "help") &&                \
+        else if (strcasestr(argv[i], "help") &&                 \
                  !strncasecmp(#A, "help",4))                    \
         {                                                       \
             return 0;                                           \
