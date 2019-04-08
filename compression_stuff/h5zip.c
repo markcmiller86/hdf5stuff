@@ -6,63 +6,19 @@ double precision floating point data with certain properties as
 specified by the command-line arguments.
 */
 
+#include <clargs.h>
+
 #include <assert.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #include "hdf5.h"
 
-#define NAME_LEN 256
-
-/* convenience macro to handle command-line args and help */
-#define HANDLE_SEP(SEPSTR)                                      \
-{                                                               \
-    char tmpstr[64];                                            \
-    int len = snprintf(tmpstr, sizeof(tmpstr), "\n%s...", #SEPSTR);\
-    printf("    %*s\n",60-len,tmpstr);                          \
-}
-
-#define HANDLE_ARG(A,PARSEA,PRINTA,HELPSTR)                     \
-{                                                               \
-    int i;                                                      \
-    char tmpstr[64];                                            \
-    int len;                                                    \
-    int len2 = strlen(#A)+1;                                    \
-    for (i = 0; i < argc; i++)                                  \
-    {                                                           \
-        if (!strncmp(argv[i], #A"=", len2))                     \
-        {                                                       \
-            A = PARSEA;                                         \
-            break;                                              \
-        }                                                       \
-        else if (strcasestr(argv[i], "help") &&                 \
-                 !strncasecmp(#A, "help", 4))                   \
-        {                                                       \
-            return 0;                                           \
-        }                                                       \
-    }                                                           \
-    len = snprintf(tmpstr, sizeof(tmpstr), "%s=" PRINTA, #A, A);\
-    printf("    %s%*s\n",tmpstr,60-len,#HELPSTR);               \
-}
-
-
-/* convenience macro to handle errors */
-#define ERROR(FNAME)                                              \
-do {                                                              \
-    int _errno = errno;                                           \
-    fprintf(stderr, #FNAME " failed at line %d, errno=%d (%s)\n", \
-        __LINE__, _errno, _errno?strerror(_errno):"ok");          \
-    return 0;                                                     \
-} while(0)
-
 /* Generate a simple, 1D sinusioidal data array with some noise */
 #define TYPINT 1
 #define TYPDBL 2
+
 static void *
 read_binary_data_file(char const *fname, int typ, int ndims, int const *dims)
 {
@@ -97,7 +53,9 @@ write_hdf5_file(char const *fname, void const *buf, int typ, int ndims, int cons
     if (z)
     {
         /* single whole dataset chunk */
+        hdims[2] = 1;
         if (0 > H5Pset_chunk(cpid, ndims, hdims)) ERROR(H5Pset_chunk);
+        if (0 > H5Pset_shuffle(cpid)) ERROR(H5Pset_shuffle);
         if (0 > H5Pset_deflate(cpid, 9)) ERROR(H5Pset_deflate);
     }
 
@@ -111,35 +69,6 @@ write_hdf5_file(char const *fname, void const *buf, int typ, int ndims, int cons
     if (0 > H5Sclose(spid)) ERROR(H5Sclose);
     if (0 > H5Fclose(fid)) ERROR(H5Fclose);
 
-#if 0
-    /* write the data with requested compression */
-    if (0 > (dsid = H5Dcreate(fid, "compressed", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, cpid, H5P_DEFAULT))) ERROR(H5Dcreate);
-    if (0 > H5Dwrite(dsid, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf)) ERROR(H5Dwrite);
-    if (0 > H5Dclose(dsid)) ERROR(H5Dclose);
-    if (doint)
-    {
-        if (0 > (idsid = H5Dcreate(fid, "int_compressed", H5T_NATIVE_INT, sid, H5P_DEFAULT, cpid, H5P_DEFAULT))) ERROR(H5Dcreate);
-        if (0 > H5Dwrite(idsid, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, ibuf)) ERROR(H5Dwrite);
-        if (0 > H5Dclose(idsid)) ERROR(H5Dclose);
-    }
-
-        if (0 > (sid = H5Screate_simple(4, hdims, 0))) ERROR(H5Screate_simple);
-
-        /* write the data WITHOUT compression */
-        if (0 > (dsid = H5Dcreate(fid, "highD_original", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT))) ERROR(H5Dcreate);
-        if (0 > H5Dwrite(dsid, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf)) ERROR(H5Dwrite);
-        if (0 > H5Dclose(dsid)) ERROR(H5Dclose);
-
-        /* write the data with compression */
-        if (0 > (dsid = H5Dcreate(fid, "highD_compressed", H5T_NATIVE_DOUBLE, sid, H5P_DEFAULT, cpid, H5P_DEFAULT))) ERROR(H5Dcreate);
-        if (0 > H5Dwrite(dsid, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf)) ERROR(H5Dwrite);
-        if (0 > H5Dclose(dsid)) ERROR(H5Dclose);
-
-        /* clean up from high dimensional test */
-        if (0 > H5Sclose(sid)) ERROR(H5Sclose);
-        if (0 > H5Pclose(cpid)) ERROR(H5Pclose);
-
-#endif
     return 0;
 }
 
