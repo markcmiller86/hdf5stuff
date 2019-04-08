@@ -1,3 +1,10 @@
+# Simple Compression Tesing Programs
+
+The programs here are to compare HDF5 library performance in terms of time and compression ratio
+to standard command-line tools such as gzip.
+
+## The programs
+
 * [gendata.c](./gendata.c)
   * Generates a binary disk file of 1, 2 or 3 dimensional array of doubles which are
     samples of a separable combination of smooth, transendental math functions.
@@ -9,7 +16,9 @@
     decorrelate along the 3rd (stack) dimension, it would be equivalent to jumbling the slices, like
     shuffling a deck of cards.
   * You can also add noise by jittering the sample positions
-  * `./gendata --hep` gives command-line argument help
+  * You can also shuffle the bytes of the resulting binary data file like HDF5 shuffle filter does
+    * **Note**: Not totally tested
+  * `./gendata --help` gives command-line argument help
 * You can use command-line compression tools like gzip to test time to compress and compression ratio
   of the data produced by `gendata`
 * [h5zip.c](./h5zip.c)
@@ -18,4 +27,10 @@
   * The purpose is to compare time and compression of the data via HDF5 to standard command-line
     tools.
   * There is a set of arguments to `h5zip` that are the same as for `gendata` to specify the size
-    and shape of the array in the binary disk file that it reads.
+    and shape of the array in the binary disk file that it reads to then instantiate as an HDF5
+    dataset.
+
+### To Do
+* Test with different versions of HDF5 library
+* Test with Quincy's `hyperslab_updates` branch on bitbucket
+* Test effect of chunk buffering controls

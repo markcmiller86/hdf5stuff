@@ -24,6 +24,8 @@ Temporary place to collect various HDF5 example/test clients
 * [test_hdf5_complicated_udts_compounds.F90](./snipits/test_hdf5_complicated_udts_compounds.F90)
   * Same as above except as a fortran 90 example.
 
+* [Comparing gzip to HDF5 deflate filter](./compression_stuff/README.md)
+
 To add new examples, create a top-level directory and start developing the example, including any
 markdown files associated with it in that directory
 
