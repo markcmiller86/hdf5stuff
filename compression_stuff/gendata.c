@@ -204,13 +204,18 @@ static void
 copy_to_tmp(unsigned char *buf, int i, int n, int nbytes, unsigned char *tmp)
 {
     int k;
-    int kmax = nbytes < n ? nbytes : n;
+    int kmax = nbytes < (n-i*nbytes) ? nbytes : (n-i*nbytes);
+    int lastq = -1;
     for (k = 0; k < kmax; k++)
     {
+        int q = (k*n + i*nbytes) / nbytes * nbytes;
+        if (lastq >= 0 && q == lastq) q++;
+        lastq = q;
 #if 0
-        printf("copying %d bytes from buf[%d] to tmp[%d]\n", nbytes, k*n+i*nbytes, k*nbytes);
+        printf("copying %d bytes from buf[%d] to tmp[%d]\n", nbytes, q, k*nbytes);
 #endif
-        memcpy(&tmp[k*nbytes], &buf[k*n+i*nbytes], nbytes);
+        memcpy(&tmp[k*nbytes], &buf[q], nbytes);
+
     }
 }
 
@@ -218,7 +223,7 @@ static void
 scatter_bytes(unsigned char *buf, int i, int n, int nbytes, unsigned char *tmp)
 {
     int k; /* which of the nbytes datums is in play */
-    int kmax = nbytes < n ? nbytes : n;
+    int kmax = nbytes < (n-i*nbytes) ? nbytes : (n-i*nbytes);
     for (k = 0; k < kmax; k++)
     {
         int j; /* which of the bytes of the datum is in play */
@@ -323,8 +328,10 @@ int main(int argc, char **argv)
     dbuf = gen_random_correlated_array(dtyp, ndims, dims, nucdims, ucdims, jitter);
 #if 0
 {
-    char *buf = (char *) dbuf;
-    for (i = 0; i < n0*8; i++)
+    char *buf = (char*) dbuf;
+    int n;
+    for (i = 0, n = 1; i < ndims; n*=dims[i], i++);
+    for (i = 0; i < n*sizeof(double); i++)
         buf[i] = 'a' + i%8;
 }
 #endif
