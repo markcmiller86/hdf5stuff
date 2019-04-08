@@ -6,88 +6,15 @@ double precision floating point data with certain properties as
 specified by the command-line arguments.
 */
 
+#include <clargs.h>
+
 #include <assert.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
-#define NAME_LEN 256
-
-/* convenience macro to handle command-line args and help */
-#define HANDLE_SEP(SEPSTR)                                      \
-{                                                               \
-    char tmpstr[64];                                            \
-    int len = snprintf(tmpstr, sizeof(tmpstr), "\n%s...", #SEPSTR);\
-    printf("    %*s\n",60-len,tmpstr);                          \
-}
-
-#define HANDLE_ARG(A,PARSEA,PRINTA,HELPSTR)                     \
-{                                                               \
-    int i;                                                      \
-    char tmpstr[64];                                            \
-    int len;                                                    \
-    int len2 = strlen(#A)+1;                                    \
-    for (i = 0; i < argc; i++)                                  \
-    {                                                           \
-        if (!strncmp(argv[i], #A"=", len2))                     \
-        {                                                       \
-            A = PARSEA;                                         \
-            break;                                              \
-        }                                                       \
-        else if (strcasestr(argv[i], "help") &&                 \
-                 !strncasecmp(#A, "help",4))                    \
-        {                                                       \
-            return 0;                                           \
-        }                                                       \
-    }                                                           \
-    len = snprintf(tmpstr, sizeof(tmpstr), "%s=" PRINTA, #A, A);\
-    printf("    %s%*s\n",tmpstr,60-len,#HELPSTR);               \
-}
-
-
-/* convenience macro to handle errors */
-#define ERROR(FNAME)                                              \
-do {                                                              \
-    int _errno = errno;                                           \
-    fprintf(stderr, #FNAME " failed at line %d, errno=%d (%s)\n", \
-        __LINE__, _errno, _errno?strerror(_errno):"ok");          \
-    return 1;                                                     \
-} while(0)
-
-/* Generate a simple, 1D sinusioidal data array with some noise */
 #define TYPINT 1
 #define TYPDBL 2
-static int gen_data(size_t npoints, double noise, double amp, void **_buf, int typ)
-{
-    size_t i;
-    double *pdbl = 0;
-    int *pint = 0;
-
-    /* create data buffer to write */
-    if (typ == TYPINT)
-        pint = (int *) malloc(npoints * sizeof(int));
-    else
-        pdbl = (double *) malloc(npoints * sizeof(double));
-    srandom(0xDeadBeef);
-    for (i = 0; i < npoints; i++)
-    {
-        double x = 2 * M_PI * (double) i / (double) (npoints-1);
-        double n = noise * ((double) random() / ((double)(1<<31)-1) - 0.5);
-        if (typ == TYPINT)
-            pint[i] = (int) (amp * (1 + sin(x)) + n);
-        else
-            pdbl[i] = (double) (amp * (1 + sin(x)) + n);
-    }
-    if (typ == TYPINT)
-        *_buf = pint;
-    else
-        *_buf = pdbl;
-    return 0;
-}
 
 /* Populate the hyper-dimensional array with samples of a radially symmetric
    sinc() function but where certain sub-spaces are randomized through dimindx arrays */
@@ -273,6 +200,59 @@ buffer_time_step(void *tbuf, void *data, int typ, int ndims, int const *dims, in
     memcpy((char*)tbuf+k*n*nbyt, data, n*nbyt);
 }
 
+static void
+copy_to_tmp(unsigned char *buf, int i, int n, int nbytes, unsigned char *tmp)
+{
+    int k;
+    int kmax = nbytes < n ? nbytes : n;
+    for (k = 0; k < kmax; k++)
+    {
+#if 0
+        printf("copying %d bytes from buf[%d] to tmp[%d]\n", nbytes, k*n+i*nbytes, k*nbytes);
+#endif
+        memcpy(&tmp[k*nbytes], &buf[k*n+i*nbytes], nbytes);
+    }
+}
+
+static void
+scatter_bytes(unsigned char *buf, int i, int n, int nbytes, unsigned char *tmp)
+{
+    int k; /* which of the nbytes datums is in play */
+    int kmax = nbytes < n ? nbytes : n;
+    for (k = 0; k < kmax; k++)
+    {
+        int j; /* which of the bytes of the datum is in play */
+        for (j = 0; j < nbytes; j++)
+        {
+#if 0
+            printf("copying 1 byte, %c, from tmp[%d] to buf[%d](%c)\n", (char) tmp[k*nbytes+j], k*nbytes+j, j*n+i*nbytes+k, (char)buf[j*n+i*nbytes+k]);
+#endif
+            buf[j*n+i*nbytes+k] = tmp[k*nbytes+j];
+        }
+    }
+}
+
+static void
+shuffle_bytes_in_place_like_hdf5(int dtyp, int ndims, int const *dims, void *buf)
+{
+    int nbytes = (int) (dtyp == TYPINT ? sizeof(int) : sizeof(double));
+    int i,n;
+    unsigned char *tmp = malloc(nbytes * nbytes);
+
+    /* compute number of entries */
+    for (i = 0, n = 1; i < ndims; i++)
+        n *= dims[i];
+
+    for (i = 0; i < n / nbytes + (n%nbytes?1:0); i++)
+    {
+        copy_to_tmp((unsigned char *)buf, i, n, nbytes, tmp);
+        scatter_bytes((unsigned char *)buf, i, n, nbytes, tmp);
+    }
+
+    free(tmp);
+
+}
+
 static int
 write_binary_data_file(char const *fname, void const *buf,
                        int typ, int ndims, int const *dims)
@@ -303,6 +283,7 @@ int main(int argc, char **argv)
     int dims[3], ucdims[3], nucdims;
     int dtyp = TYPDBL;
     double jitter = 0.000;
+    int h5shuffle = 0;
     int help = 0;
 
     int *ibuf = 0;
@@ -323,7 +304,9 @@ int main(int argc, char **argv)
     HANDLE_ARG(c2,(int)strtol(argv[i]+len2,0,10), "%d",de-coorelate dimension 2? (1/0=Y/n));
     HANDLE_ARG(dtyp,(int)strtol(argv[i]+len2,0,10), "%d",data type (1=int32, 2=flt64));
     HANDLE_ARG(jitter,(double) strtod(argv[i]+len2,0),"%g",jitter abscissa to separable funcs);
-    HANDLE_ARG(help,(int)strtol(argv[i]+len2,0,10),"%d",this help message); /* must be last for help to work */
+    HANDLE_ARG(h5shuffle,(int)strtol(argv[i]+len2,0,10), "%d",shuffle bytes like HDF5 shuffle filter);
+    HANDLE_ARG(help,(int)strtol(argv[i]+len2,0,10),"%d",this help message);
+    assert(dtyp==2);
     if (!strncmp(ofile, "test_dbls.dat", 13) && dtyp == TYPINT)
         strcpy(ofile, "test_ints.dat");
 
@@ -338,6 +321,16 @@ int main(int argc, char **argv)
     if (ndims > 2) dims[2] = n2;
     
     dbuf = gen_random_correlated_array(dtyp, ndims, dims, nucdims, ucdims, jitter);
+#if 0
+{
+    char *buf = (char *) dbuf;
+    for (i = 0; i < n0*8; i++)
+        buf[i] = 'a' + i%8;
+}
+#endif
+
+    if (h5shuffle)
+        shuffle_bytes_in_place_like_hdf5(dtyp, ndims, dims, dbuf);
 
     write_binary_data_file(ofile, dbuf, dtyp, ndims, dims);
 
