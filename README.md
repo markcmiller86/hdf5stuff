@@ -26,6 +26,11 @@ Temporary place to collect various HDF5 example/test clients
 
 * [Comparing gzip to HDF5 deflate filter](./compression_stuff/README.md)
 
+* Benchmark data sources to consider
+
+  * Paper: Knorr, Fabian, Peter Thoman, and Thomas Fahringer. “Datasets for Benchmarking Floating-Point Compressors.” arXiv.org (2020): n. pag. Print.
+  * Website: https://sdrbench.github.io
+
 To add new examples, create a top-level directory and start developing the example, including any
 markdown files associated with it in that directory
 
